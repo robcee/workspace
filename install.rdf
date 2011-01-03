@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+     xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+    <Description about="urn:mozilla:install-manifest">
+        <em:id>workspace@antennasoft.net</em:id>
+        <em:name>Workspace</em:name>
+        <em:version>0.1</em:version>
+        <em:description>A simple editor for manipulating snippets of JS</em:description>
+        <em:creator>Rob Campbell</em:creator>
+        <em:homepageURL>http://antennasoft.net/robcee/workspace</em:homepageURL>
+        <em:type>2</em:type> <!-- type=extension --> 
+
+        <em:targetApplication>
+           <!-- Firefox -->
+           <Description>
+                <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+                <em:minVersion>1.5</em:minVersion>
+                <em:maxVersion>4.0b9pre</em:maxVersion>
+           </Description>
+        </em:targetApplication>
+    </Description>
+</RDF>
