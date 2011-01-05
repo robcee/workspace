@@ -2,22 +2,121 @@ const Cu = Components.utils;
 
 var jsm = {};
 
-Cu.import("resource://gre/modules/Services.jsm", jsm);
-
-Services = jsm.Services;
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource:///modules/PropertyPanel.jsm");
 
 Workspace = {
   win: null,
-  execute: function WS_execute(aEvent) {
-    let textbox = document.getElementById("workspace-textbox");
-    let text = textbox.value;
-    let recentWin = Services.wm.getMostRecentWindow("navigator:browser");
+
+  get textbox() {
+    return document.getElementById("workspace-textbox");
+  },
+
+  get selectedText() {
+    let text = this.textbox.value;
+    let selectionStart = this.textbox.selectionStart;
+    let selectionEnd = this.textbox.selectionEnd;
+    if (selectionStart != selectionEnd)
+      return text.substring(selectionStart, selectionEnd);
+    return "";
+  },
+
+  get browserWindow() {
+    return Services.wm.getMostRecentWindow("navigator:browser");
+  },
+
+  get gBrowser() {
+    let recentWin = this.browserWindow;
     if (!recentWin)
       return null;
-    this.gBrowser = recentWin.gBrowser;
-    this.contentWindow = this.gBrowser.selectedBrowser.contentWindow;
-    this.sandbox = new Cu.Sandbox(this.contentWindow,
-      { sandboxPrototype: this.contentWindow, wantXrays: false });
-    Cu.evalInSandbox(text, this.sandbox, "1.8", "Workspace", 1);
+    return recentWin.gBrowser;
+  },
+
+  get sandbox() {
+    // need to cache sandboxes if currentBrowser == previousBrowser
+    let contentWindow = this.gBrowser.selectedBrowser.contentWindow;
+    let sandbox = new Cu.Sandbox(contentWindow,
+      { sandboxPrototype: contentWindow, wantXrays: false });
+    return sandbox;
+  },
+
+  evalInSandbox: function WS_evalInSandbox(aString) {
+    Cu.evalInSandbox(aString, this.sandbox, "1.8", "Workspace", 1);
+  },
+
+  execute: function WS_execute(aEvent) {
+    let selection = this.selectedText;
+    this.evalInSandbox(selection);
+  },
+
+  inspect: function WS_inspect(aEvent) {
+    let selection = this.selectedText;
+    let result = this.evalInSandbox(selection);
+    this.openPropertyPanel(selection, result, this);
+  },
+
+  print: function WS_print(aEvent) {
+    let selection = this.selectedText;
+    let selectionStart = this.textbox.selectionStart;
+    let selectionEnd = this.textbox.selectionEnd;
+    let result = this.evalInSandbox(selection);
+    if (result) {
+      let firstPiece = this.textbox.value.slice(0, selectionEnd);
+      let lastPiece = this.textbox.value.slice(selectionEnd + 1, this.textbox.value.length);
+      this.textbox.value = firstPiece + " " + result + "\n" + lastPiece;
+      this.textbox.selectionStart = selectionEnd + 1;
+      this.textbox.selectionEnd = this.textbox.selectionStart + result.length;
+    }
+  },
+
+  openPropertyPanel: function WS_openPropertyPanel(aEvalString, aOutputObject,
+                                                  aAnchor)
+  {
+    let self = this;
+    let propPanel;
+    // The property panel has two buttons:
+    // 1. `Update`: reexecutes the string executed on the command line. The
+    //    result will be inspected by this panel.
+    // 2. `Close`: destroys the panel.
+    let buttons = [];
+
+    // If there is a evalString passed to this function, then add a `Update`
+    // button to the panel so that the evalString can be reexecuted to update
+    // the content of the panel.
+    if (aEvalString !== null) {
+      buttons.push({
+        label: "Update",
+        accesskey: "U",
+        oncommand: function () {
+          try {
+            let result = self.evalInSandbox(aEvalString);
+
+            if (result !== undefined)
+              propPanel.treeView.data = result;
+          } catch (ex) {
+          }
+        }
+      });
+    }
+
+    buttons.push({
+      label: "Close",
+      accesskey: "C",
+      class: "jsPropertyPanelCloseButton",
+      oncommand: function () {
+        propPanel.destroy();
+        aAnchor._panelOpen = false;
+      }
+    });
+
+    let doc = this.browserWindow.document;
+    let parent = doc.getElementById("mainPopupSet");
+    let title = "Object";
+    propPanel = new PropertyPanel(parent, doc, title, aOutputObject, buttons);
+
+    let panel = propPanel.panel;
+    panel.openPopup(aAnchor, "after_pointer", 0, 0, false, false);
+    panel.sizeTo(200, 400);
+    return propPanel;
   },
 }

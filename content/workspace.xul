@@ -15,7 +15,11 @@
 <popupset id="workspace-popups">
   <menupopup id="workspace-text-popup">
     <menuitem id="ws-text-execute" label="Execute" accesskey="e"
-      oncommand="Workspace.execute(event)"/>
+      oncommand="Workspace.execute(event);"/>
+    <menuitem id="ws-text-inspect" label="Inspect" accesskey="i"
+      oncommand="Workspace.inspect(event);"/>
+    <menuitem id="ws-text-print" label="Print" accesskey="p"
+      oncommand="Workspace.print(event);"/>
   </menupopup>
 </popupset>
 
@@ -24,8 +28,7 @@
          flex="1"
          context="workspace-text-popup"/>
 <statusbar id="workspace-statusbar" align="end">
-  <statusbarpanel id="workspace-textpos" label="row: $1 col: $2"/>
+  <statusbarpanel id="workspace-textpos" label="row: $1 col: $2" class="statusbarpanel-iconic-text"/>
   <spacer flex="1"/>
-  <resizer dir="bottomend"/>
 </statusbar>
 </window>
