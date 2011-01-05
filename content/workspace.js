@@ -41,18 +41,21 @@ Workspace = {
   },
 
   evalInSandbox: function WS_evalInSandbox(aString) {
-    Cu.evalInSandbox(aString, this.sandbox, "1.8", "Workspace", 1);
+    return Cu.evalInSandbox(aString, this.sandbox, "1.8", "Workspace", 1);
   },
 
   execute: function WS_execute(aEvent) {
     let selection = this.selectedText;
     this.evalInSandbox(selection);
+    this.deselect();
   },
 
   inspect: function WS_inspect(aEvent) {
     let selection = this.selectedText;
     let result = this.evalInSandbox(selection);
-    this.openPropertyPanel(selection, result, this);
+    if (result)
+      this.openPropertyPanel(selection, result, this);
+    this.deselect();
   },
 
   print: function WS_print(aEvent) {
@@ -63,10 +66,11 @@ Workspace = {
     if (result) {
       let firstPiece = this.textbox.value.slice(0, selectionEnd);
       let lastPiece = this.textbox.value.slice(selectionEnd + 1, this.textbox.value.length);
-      this.textbox.value = firstPiece + " " + result + "\n" + lastPiece;
+      this.textbox.value = firstPiece + " " + result.toString() + "\n" + lastPiece;
       this.textbox.selectionStart = selectionEnd + 1;
       this.textbox.selectionEnd = this.textbox.selectionStart + result.length;
     }
+    this.deselect();
   },
 
   openPropertyPanel: function WS_openPropertyPanel(aEvalString, aOutputObject,
