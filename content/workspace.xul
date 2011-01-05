@@ -26,7 +26,8 @@
 <textbox id="workspace-textbox"
          multiline="true"
          flex="1"
-         context="workspace-text-popup"/>
+         context="workspace-text-popup"
+         placeholder="// Enter some JavaScript, select it, right click and choose your weapon." />
 <statusbar id="workspace-statusbar" align="end">
   <statusbarpanel id="workspace-textpos" label="row: $1 col: $2" class="statusbarpanel-iconic-text"/>
   <spacer flex="1"/>

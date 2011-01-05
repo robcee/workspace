@@ -11,4 +11,6 @@ Lots. This is a prototype.
 * Menu bar (File, Edit, for starters)
 * Context menu edit options.
 * Ruler (Row/Col)
+* Persist on restart
+* Import from pastebin, github, etc.
 * Much more!
