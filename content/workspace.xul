@@ -1,6 +1,10 @@
 <?xml version="1.0"?>
-<!DOCTYPE window PUBLIC "-//MOZILLA//DTD XUL V1.0//EN" "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<!DOCTYPE window [
+<!ENTITY % browserDTD SYSTEM "chrome://browser/locale/browser.dtd" >
+ %browserDTD;
+]>
 <?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
+<?xul-overlay href="chrome://global/content/editMenuOverlay.xul"?>
 
 <window id="main-window"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -11,6 +15,126 @@
 
 <!-- script type="application/javascript" src="chrome://browser/content/nsContextMenu.js"/ -->
 <script type="application/javascript" src="chrome://workspace/content/workspace.js"/>
+
+<menubar id="ws-menubar">
+  <menu id="ws-file-menu" label="&fileMenu.label;"
+        accesskey="&fileMenu.accesskey;">
+    <menupopup id="ws-menu-filepopup">
+      <menuitem id="ws-menu-newworkspace"
+                label="New Window"
+                accesskey="N"
+                key="key_newNavigator"
+                oncommand="openWorkspace()"/>
+      <menuseparator/>
+      <menuitem id="ws-menu-open"
+                label="&openFileCmd.label;"
+                oncommand="Workspace.openFile();"
+                key="openFileKb"
+                accesskey="&openFileCmd.accesskey;"/>
+      <menuitem id="ws-menu-save"
+                label="Save…"
+                accesskey="&savePageCmd.accesskey;"
+                key="key_savePage"
+                oncommand="Workspace.save();"/>
+      <menuseparator/>
+      <menuitem id="ws-menu-print"
+                label="&printCmd.label;"
+                accesskey="&printCmd.accesskey;"
+                key="printKb"
+                command="Workspace.print();"/>
+      <menuitem id="menu_import"
+                label="&import.label;"
+                accesskey="&import.accesskey;"
+                oncommand="BrowserImport();"/>
+      <menuseparator/>
+      <menuitem id="ws-menu-close"
+                label="&closeCmd.label;"
+                key="key_close"
+                accesskey="&closeCmd.accesskey;"
+                oncommand="Workspace.closeWindow();"/>
+    </menupopup>
+  </menu>
+
+  <menu id="ws-edit-menu" label="&editMenu.label;"
+        accesskey="&editMenu.accesskey;">
+    <menupopup id="ws-menu_editpopup"
+               onpopupshowing="Workspace.updateEditUIVisibility();"
+               onpopuphidden="Workspace.updateEditUIVisibility();">
+      <menuitem id="ws-menu_undo"
+                label="&undoCmd.label;"
+                key="key_undo"
+                accesskey="&undoCmd.accesskey;"
+                oncommand="cmd_undo"/>
+      <menuitem id="ws-menu-redo"
+                label="&redoCmd.label;"
+                key="key_redo"
+                accesskey="&redoCmd.accesskey;"
+                command="cmd_redo"/>
+      <menuseparator/>
+      <menuitem id="ws-menu-cut"
+                label="&cutCmd.label;"
+                key="key_cut"
+                accesskey="&cutCmd.accesskey;"
+                command="cmd_cut"/>
+      <menuitem id="ws-menu-copy"
+                label="&copyCmd.label;"
+                key="key_copy"
+                accesskey="&copyCmd.accesskey;"
+                command="cmd_copy"/>
+      <menuitem id="ws-menu-paste"
+                label="&pasteCmd.label;"
+                key="key_paste"
+                accesskey="&pasteCmd.accesskey;"
+                command="cmd_paste"/>
+      <menuitem id="ws-menu-delete"
+                label="&deleteCmd.label;"
+                key="key_delete"
+                accesskey="&deleteCmd.accesskey;"
+                command="cmd_delete"/>
+      <menuseparator/>
+      <menuitem id="ws-menu-selectAll"
+                label="&selectAllCmd.label;"
+                key="key_selectAll"
+                accesskey="&selectAllCmd.accesskey;"
+                command="cmd_selectAll"/>
+      <menuseparator/>
+      <menuitem id="ws-menu-find"
+                label="&findOnCmd.label;"
+                accesskey="&findOnCmd.accesskey;"
+                key="key_find"
+                command="cmd_find"/>
+      <menuitem id="ws-menu-findAgain"
+                label="&findAgainCmd.label;"
+                accesskey="&findAgainCmd.accesskey;"
+                key="key_findAgain"
+                command="cmd_findAgain"/>
+      <menuseparator id="ws-execute-separator"/>
+      <menuitem id="ws-text-execute" label="Execute" accesskey="e"
+      oncommand="Workspace.execute(event);"/>
+      <menuitem id="ws-text-inspect" label="Inspect" accesskey="i"
+      oncommand="Workspace.inspect(event);"/>
+      <menuitem id="ws-text-print" label="Print" accesskey="p"
+      oncommand="Workspace.print(event);"/>
+    </menupopup>
+  </menu>
+
+  <menu id="ws-context-menu" label="Context"
+        accesskey="C">
+    <menupopup id="ws-menu-content">
+      <menuitem id="ws-menu-content"
+                label="Content"
+                accesskey="C"
+                oncommand="Workspace.setContentContext();"
+                type="radio"
+                checked="true"/>
+      <menuitem id="ws-menu-context"
+                oncommand="Workspace.setChromeContext();"
+                label="Chrome"
+                accesskey="h"
+                type="radio"/>
+    </menupopup>
+  </menu>
+</menubar>
 
 <popupset id="workspace-popups">
   <menupopup id="workspace-text-popup">

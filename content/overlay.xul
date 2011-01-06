@@ -14,4 +14,11 @@
               oncommand="openWorkspace();"
               class="menu-iconic-wide"/>
   </menupopup>
+
+  <menupopup id="appmenu_webDeveloper_popup">
+    <menuitem id="appmenu_workspace"
+              label="Workspace"
+              oncommand="openWorkspace();"
+              class="menu-iconic-wide"/>
+  </menupopup>
 </overlay>
