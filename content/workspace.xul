@@ -138,6 +138,13 @@
 
 <popupset id="workspace-popups">
   <menupopup id="workspace-text-popup">
+    <menuitem id="menu_cut"/>
+    <menuitem id="menu_copy"/>
+    <menuitem id="menu_paste"/>
+    <menuitem id="menu_delete"/>
+    <menuseparator/>
+    <menuitem id="menu_selectAll"/>
+    <menuseparator/>
     <menuitem id="ws-text-execute" label="Execute" accesskey="e"
       oncommand="Workspace.execute(event);"/>
     <menuitem id="ws-text-inspect" label="Inspect" accesskey="i"
