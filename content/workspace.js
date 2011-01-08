@@ -1,7 +1,5 @@
 const Cu = Components.utils;
 
-var jsm = {};
-
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
 
