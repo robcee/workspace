@@ -12,6 +12,15 @@
 <!-- script type="application/javascript" src="chrome://browser/content/nsContextMenu.js"/ -->
 <script type="application/javascript" src="chrome://workspace/content/workspace.js"/>
 
+<commandset>
+  <command id="workspace-cmd-close" oncommand="window.close();"/>
+</commandset>
+
+<keyset>
+  <key command="workspace-cmd-close" key="w" modifiers="accel"/>
+  <key command="workspace-cmd-close" keycode="VK_ESCAPE"/>
+</keyset>
+
 <popupset id="workspace-popups">
   <menupopup id="workspace-text-popup">
     <menuitem id="ws-text-execute" label="Execute" accesskey="e"
