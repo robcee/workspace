@@ -1,6 +1,16 @@
-const Cu = Components.utils;
+/*
+ * workspace.js
+ *
+ * Main Workspace logic.
+ *
+ * All Copyright dedicated to the Public Domain.
+ * January 7, 2011
+ *
+ * Contributors:
+ *   Rob Campbell <robcee@mozilla.com>, original author
+ */
 
-var jsm = {};
+const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
@@ -40,18 +50,47 @@ Workspace = {
     return sandbox;
   },
 
+  hasSelection: function WS_hasSelection() {
+    return !!this.textbox.selectedText;
+  },
+
+  hasClipboard: function WS_hasClipboard() {
+    return false; //tbd
+  },
+
+  updateEditUIVisibility: function WS_updateEditUIVisibility() {
+    if (this.hasSelection) {
+      document.getElementById("ws-menu-cut").removeAttribute("disabled");
+      document.getElementById("ws-menu-copy").removeAttribute("disabled");
+    } else {
+      document.getElementById("ws-menu-cut").setAttribute("disabled", true);
+      document.getElementById("ws-menu-copy").setAttribute("disabled", true);
+    }
+    document.getElementById("ws-menu-paste").setAttribute("disabled", !this.hasClipboard());
+  },
+
+  deselect: function WS_deselect() {
+    this.textbox.selectionEnd = this.textbox.selectionStart;
+    return this;
+  },
+
+  selectRange: function WS_selectRange(aStart, aEnd) {
+    this.textbox.selectionStart = aStart;
+    this.textbox.selectionEnd = aEnd;
+  },
+
   evalInSandbox: function WS_evalInSandbox(aString) {
     return Cu.evalInSandbox(aString, this.sandbox, "1.8", "Workspace", 1);
   },
 
   execute: function WS_execute(aEvent) {
-    let selection = this.selectedText;
+    let selection = this.selectedText || this.textbox.value;
     this.evalInSandbox(selection);
     this.deselect();
   },
 
   inspect: function WS_inspect(aEvent) {
-    let selection = this.selectedText;
+    let selection = this.selectedText || this.textbox.value;
     let result = this.evalInSandbox(selection);
     if (result)
       this.openPropertyPanel(selection, result, this);
@@ -59,18 +98,17 @@ Workspace = {
   },
 
   print: function WS_print(aEvent) {
-    let selection = this.selectedText;
+    let selection = this.selectedText || this.textbox.value;
     let selectionStart = this.textbox.selectionStart;
     let selectionEnd = this.textbox.selectionEnd;
+    if (selectionStart == selectionEnd)
+      selectionEnd = this.textbox.value.length;
     let result = this.evalInSandbox(selection);
-    if (result) {
-      let firstPiece = this.textbox.value.slice(0, selectionEnd);
-      let lastPiece = this.textbox.value.slice(selectionEnd + 1, this.textbox.value.length);
-      this.textbox.value = firstPiece + " " + result.toString() + "\n" + lastPiece;
-      this.textbox.selectionStart = selectionEnd + 1;
-      this.textbox.selectionEnd = this.textbox.selectionStart + result.length;
-    }
-    this.deselect();
+    let firstPiece = this.textbox.value.slice(0, selectionEnd);
+    let lastPiece = this.textbox.value.slice(selectionEnd + 1, this.textbox.value.length);
+    this.textbox.value = firstPiece + "\n " + result.toString() + "\n" + lastPiece;
+    this.selectRange(this.textbox.selectionEnd + 2, 
+      this.textbox.selectionStart + result.length);
   },
 
   openPropertyPanel: function WS_openPropertyPanel(aEvalString, aOutputObject,

@@ -16,6 +16,69 @@
 <!-- script type="application/javascript" src="chrome://browser/content/nsContextMenu.js"/ -->
 <script type="application/javascript" src="chrome://workspace/content/workspace.js"/>
 
+<commandset id="ws-commandset">
+  <command id="ws-cmd-newWindow" oncommand="Workspace.openWorkspace();" disabled="true"/>
+  <command id="ws-cmd-openFile" oncommand="Workspace.openFile();" disabled="true"/>
+  <command id="ws-cmd-save" oncommand="Workspace.saveFile();" disabled="true"/>
+  <command id="ws-cmd-printFile" oncommand="Workspace.printFile();" disabled="true"/>
+  <command id="ws-cmd-close" oncommand="window.close();"/>
+  <command id="ws-cmd-execute" oncommand="Workspace.execute();"/>
+  <command id="ws-cmd-inspect" oncommand="Workspace.inspect();"/>
+  <command id="ws-cmd-print" oncommand="Workspace.print();"/>
+  <command id="ws-cmd-contentContext" oncommand="Workspace.setContentContext();"/>
+  <command id="ws-cmd-chromeContext" oncommand="Workspace.setChromeContext();"/>
+</commandset>
+
+<keyset id="ws-keyset">
+  <key id="ws-key-window"
+       key="&newNavigatorCmd.key;"
+       command="ws-cmd-newWindow"
+       modifiers="accel"/>
+  <key id="ws-key-open"
+       key="&openFileCmd.commandkey;"
+       command="ws-cmd-openFile"
+       modifiers="accel"/>
+  <key id="ws-key-save"
+       key="&savePageCmd.commandkey;"
+       command="ws-cmd-save"
+       modifiers="accel"/>
+  <key id="ws-key-close"
+       key="&closeCmd.key;"
+       command="ws-cmd-close"
+       modifiers="accel"/>
+  <key id="ws-key-printFile"
+       key="&printCmd.commandkey;"
+       command="ws-cmd-close"
+       modifiers="accel"/>
+  <key id="key_cut"
+       key="&cutCmd.key;"
+       modifiers="accel"/>
+  <key id="key_copy"
+       key="&copyCmd.key;"
+       modifiers="accel"/>
+  <key id="key_paste"
+       key="&pasteCmd.key;"
+       modifiers="accel"/>
+  <key id="key_selectAll" key="&selectAllCmd.key;" modifiers="accel"/>
+  <key id="key_undo"
+       key="&undoCmd.key;"
+       modifiers="accel"/>
+  <key id="key_redo" key="&undoCmd.key;" modifiers="accel,shift"/>
+  <key id="ws-key-execute"
+       key="e"
+       command="ws-cmd-execute"
+       modifiers="accel"/>
+  <key id="ws-key-inspect"
+       key="i"
+       command="ws-cmd-inspect"
+       modifiers="accel"/>
+  <key id="ws-key-print"
+       key="r"
+       command="ws-cmd-print"
+       modifiers="accel"/>
+</keyset>
+  
+
 <menubar id="ws-menubar">
   <menu id="ws-file-menu" label="&fileMenu.label;"
         accesskey="&fileMenu.accesskey;">
@@ -23,35 +86,30 @@
       <menuitem id="ws-menu-newworkspace"
                 label="New Window"
                 accesskey="N"
-                key="key_newNavigator"
-                oncommand="openWorkspace()"/>
+                key="ws-key-window"
+                command="ws-cmd-newWindow"/>
       <menuseparator/>
       <menuitem id="ws-menu-open"
                 label="&openFileCmd.label;"
-                oncommand="Workspace.openFile();"
-                key="openFileKb"
+                command="ws-cmd-openFile"
+                key="ws-key-open"
                 accesskey="&openFileCmd.accesskey;"/>
       <menuitem id="ws-menu-save"
                 label="Save…"
                 accesskey="&savePageCmd.accesskey;"
-                key="key_savePage"
-                oncommand="Workspace.save();"/>
+                key="ws-key-save"
+                command="ws-cmd-save"/>
       <menuseparator/>
       <menuitem id="ws-menu-print"
                 label="&printCmd.label;"
                 accesskey="&printCmd.accesskey;"
-                key="printKb"
-                command="Workspace.print();"/>
-      <menuitem id="menu_import"
-                label="&import.label;"
-                accesskey="&import.accesskey;"
-                oncommand="BrowserImport();"/>
+                command="ws-cmd-printFile"/>
       <menuseparator/>
       <menuitem id="ws-menu-close"
                 label="&closeCmd.label;"
-                key="key_close"
+                key="ws-key-close"
                 accesskey="&closeCmd.accesskey;"
-                oncommand="Workspace.closeWindow();"/>
+                command="ws-cmd-close"/>
     </menupopup>
   </menu>
 
@@ -64,10 +122,12 @@
                 label="&undoCmd.label;"
                 key="key_undo"
                 accesskey="&undoCmd.accesskey;"
+                disabled="true"
                 oncommand="cmd_undo"/>
       <menuitem id="ws-menu-redo"
                 label="&redoCmd.label;"
                 key="key_redo"
+                disabled="true"
                 accesskey="&redoCmd.accesskey;"
                 command="cmd_redo"/>
       <menuseparator/>
@@ -86,11 +146,6 @@
                 key="key_paste"
                 accesskey="&pasteCmd.accesskey;"
                 command="cmd_paste"/>
-      <menuitem id="ws-menu-delete"
-                label="&deleteCmd.label;"
-                key="key_delete"
-                accesskey="&deleteCmd.accesskey;"
-                command="cmd_delete"/>
       <menuseparator/>
       <menuitem id="ws-menu-selectAll"
                 label="&selectAllCmd.label;"
@@ -102,19 +157,21 @@
                 label="&findOnCmd.label;"
                 accesskey="&findOnCmd.accesskey;"
                 key="key_find"
+                disabled="true"
                 command="cmd_find"/>
       <menuitem id="ws-menu-findAgain"
                 label="&findAgainCmd.label;"
                 accesskey="&findAgainCmd.accesskey;"
                 key="key_findAgain"
+                disabled="true"
                 command="cmd_findAgain"/>
       <menuseparator id="ws-execute-separator"/>
       <menuitem id="ws-text-execute" label="Execute" accesskey="e"
-      oncommand="Workspace.execute(event);"/>
+                key="ws-key-execute" command="ws-cmd-execute"/>
       <menuitem id="ws-text-inspect" label="Inspect" accesskey="i"
-      oncommand="Workspace.inspect(event);"/>
+                key="ws-key-inspect" command="ws-cmd-inspect"/>
       <menuitem id="ws-text-print" label="Print" accesskey="p"
-      oncommand="Workspace.print(event);"/>
+                key="ws-key-print" command="ws-cmd-print"/>
     </menupopup>
   </menu>
 
@@ -124,11 +181,10 @@
       <menuitem id="ws-menu-content"
                 label="Content"
                 accesskey="C"
-                oncommand="Workspace.setContentContext();"
-                type="radio"
-                checked="true"/>
+                command="ws-cmd-contentContext"
+                type="radio"/>
       <menuitem id="ws-menu-context"
-                oncommand="Workspace.setChromeContext();"
+                command="ws-cmd-chromeContext"
                 label="Chrome"
                 accesskey="h"
                 type="radio"/>
@@ -146,11 +202,11 @@
     <menuitem id="menu_selectAll"/>
     <menuseparator/>
     <menuitem id="ws-text-execute" label="Execute" accesskey="e"
-      oncommand="Workspace.execute(event);"/>
+      key="ws-key-execute" command="ws-cmd-execute"/>
     <menuitem id="ws-text-inspect" label="Inspect" accesskey="i"
-      oncommand="Workspace.inspect(event);"/>
+      key="ws-key-inspect" command="ws-cmd-inspect"/>
     <menuitem id="ws-text-print" label="Print" accesskey="p"
-      oncommand="Workspace.print(event);"/>
+      key="ws-key-print" command="ws-cmd-print"/>
   </menupopup>
 </popupset>
 
