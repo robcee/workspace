@@ -1,2 +1,2 @@
 content workspace content/
-overlay chrome://browser/content/browser.xul chrome://workspace/content/overlay.xul
+overlay chrome://browser/content/browser.xul chrome://workspace/content/browser.xul

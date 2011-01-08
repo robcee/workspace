@@ -2,12 +2,12 @@
 <!DOCTYPE overlay PUBLIC "-//MOZILLA//DTD XUL V1.0//EN" "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 <?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
 
-<overlay id="extension-overlay-name"
+<overlay id="workspace-browser-overlay"
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   
-  <script type="application/x-javascript" src="chrome://workspace/content/workspace-overlay.js"></script>
+  <script type="application/x-javascript" src="chrome://workspace/content/browser.js"></script>
   <menupopup id="menu_ToolsPopup">
     <menuitem id="menu_workspace"
               label="Workspace"
