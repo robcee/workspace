@@ -6,9 +6,7 @@ Cu.import("resource:///modules/PropertyPanel.jsm");
 Workspace = {
   win: null,
 
-  get textbox() {
-    return document.getElementById("workspace-textbox");
-  },
+  get textbox() document.getElementById("workspace-textbox"),
 
   get selectedText() {
     let text = this.textbox.value;
@@ -19,15 +17,11 @@ Workspace = {
     return "";
   },
 
-  get browserWindow() {
-    return Services.wm.getMostRecentWindow("navigator:browser");
-  },
+  get browserWindow() Services.wm.getMostRecentWindow("navigator:browser"),
 
   get gBrowser() {
     let recentWin = this.browserWindow;
-    if (!recentWin)
-      return null;
-    return recentWin.gBrowser;
+    return (recentWin) ? recentWin.gBrowser : null;
   },
 
   get sandbox() {
