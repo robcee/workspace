@@ -16,8 +16,12 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
 
+const WS_CONTEXT_CONTENT = 1;
+const WS_CONTEXT_CHROME = 2;
+
 Workspace = {
   win: null,
+  executionContext: WS_CONTEXT_CONTENT,
 
   get textbox() document.getElementById("workspace-textbox"),
 
@@ -78,17 +82,27 @@ Workspace = {
     return Cu.evalInSandbox(aString, this.sandbox, "1.8", "Workspace", 1);
   },
 
+  evalForContext: function WS_evaluateForContext(aString) {
+    if (this.executionContext == WS_CONTEXT_CONTENT)
+      return this.evalInSandbox(aString);
+
+    // chrome
+    return eval(aString);
+  },
+
   execute: function WS_execute(aEvent) {
     let selection = this.selectedText || this.textbox.value;
-    this.evalInSandbox(selection);
+    this.evalForContext(selection);
     this.deselect();
   },
 
   inspect: function WS_inspect(aEvent) {
     let selection = this.selectedText || this.textbox.value;
-    let result = this.evalInSandbox(selection);
+    let result = this.evalForContext(selection);
+
     if (result)
       this.openPropertyPanel(selection, result, this);
+
     this.deselect();
   },
 
@@ -98,7 +112,7 @@ Workspace = {
     let selectionEnd = this.textbox.selectionEnd;
     if (selectionStart == selectionEnd)
       selectionEnd = this.textbox.value.length;
-    let result = this.evalInSandbox(selection);
+    let result = this.evalForContext(selection);
     let firstPiece = this.textbox.value.slice(0, selectionEnd);
     let lastPiece = this.textbox.value.slice(selectionEnd + 1, this.textbox.value.length);
     this.textbox.value = firstPiece + "\n " + result.toString() + "\n" + lastPiece;
@@ -156,4 +170,16 @@ Workspace = {
     panel.sizeTo(200, 400);
     return propPanel;
   },
+
+  setContentContext: function WS_setContentContext() {
+    document.getElementById("ws-menu-chrome").removeAttribute("checked");
+    document.getElementById("ws-menu-content").setAttribute("checked", true);
+    this.executionContext = WS_CONTEXT_CONTENT;
+  },
+
+  setChromeContext: function WS_setChromeContext() {
+    document.getElementById("ws-menu-content").removeAttribute("checked");
+    document.getElementById("ws-menu-chrome").setAttribute("checked", true);
+    this.executionContext = WS_CONTEXT_CHROME;
+  }
 }

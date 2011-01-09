@@ -177,13 +177,14 @@
 
   <menu id="ws-context-menu" label="Context"
         accesskey="C">
-    <menupopup id="ws-menu-content">
+    <menupopup id="ws-menu-context">
       <menuitem id="ws-menu-content"
                 label="Content"
                 accesskey="C"
                 command="ws-cmd-contentContext"
+                checked="true"
                 type="radio"/>
-      <menuitem id="ws-menu-context"
+      <menuitem id="ws-menu-chrome"
                 command="ws-cmd-chromeContext"
                 label="Chrome"
                 accesskey="h"
