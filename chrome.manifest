@@ -1,2 +1,3 @@
 content workspace content/
+resource workspace modules/
 overlay chrome://browser/content/browser.xul chrome://workspace/content/browser.xul

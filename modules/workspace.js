@@ -11,19 +11,29 @@
  *   Erik Vold
  */
 
-const Cu = Components.utils;
+var EXPORTED_SYMBOLS = ["Workspace"];
 
+const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
 
 const WS_CONTEXT_CONTENT = 1;
 const WS_CONTEXT_CHROME = 2;
 
-Workspace = {
-  win: null,
+function Workspace(win) {
+  this._win = win;
+  this.$ = function(id) win.document.getElementById(id);
+  return this;
+}
+
+Workspace.prototype = {
+  WS_CONTEXT_CONTENT: WS_CONTEXT_CONTENT,
+  WS_CONTEXT_CHROME: WS_CONTEXT_CHROME,
+
+  _win: null,
   executionContext: WS_CONTEXT_CONTENT,
 
-  get textbox() document.getElementById("workspace-textbox"),
+  get textbox() this.$("workspace-textbox"),
 
   get selectedText() {
     let text = this.textbox.value;
@@ -59,13 +69,13 @@ Workspace = {
 
   updateEditUIVisibility: function WS_updateEditUIVisibility() {
     if (this.hasSelection) {
-      document.getElementById("ws-menu-cut").removeAttribute("disabled");
-      document.getElementById("ws-menu-copy").removeAttribute("disabled");
+      this.$("ws-menu-cut").removeAttribute("disabled");
+      this.$("ws-menu-copy").removeAttribute("disabled");
     } else {
-      document.getElementById("ws-menu-cut").setAttribute("disabled", true);
-      document.getElementById("ws-menu-copy").setAttribute("disabled", true);
+      this.$("ws-menu-cut").setAttribute("disabled", true);
+      this.$("ws-menu-copy").setAttribute("disabled", true);
     }
-    document.getElementById("ws-menu-paste").setAttribute("disabled", !this.hasClipboard());
+    this.$("ws-menu-paste").setAttribute("disabled", !this.hasClipboard());
   },
 
   deselect: function WS_deselect() {
@@ -172,14 +182,14 @@ Workspace = {
   },
 
   setContentContext: function WS_setContentContext() {
-    document.getElementById("ws-menu-chrome").removeAttribute("checked");
-    document.getElementById("ws-menu-content").setAttribute("checked", true);
+    this.$("ws-menu-chrome").removeAttribute("checked");
+    this.$("ws-menu-content").setAttribute("checked", true);
     this.executionContext = WS_CONTEXT_CONTENT;
   },
 
   setChromeContext: function WS_setChromeContext() {
-    document.getElementById("ws-menu-content").removeAttribute("checked");
-    document.getElementById("ws-menu-chrome").setAttribute("checked", true);
+    this.$("ws-menu-content").removeAttribute("checked");
+    this.$("ws-menu-chrome").setAttribute("checked", true);
     this.executionContext = WS_CONTEXT_CHROME;
   }
 }
