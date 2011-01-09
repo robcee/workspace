@@ -10,6 +10,8 @@ All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
 
+0.3 - [2011-01-09] Chrome and Content context menu options working.
+
 0.2 - [2011-01-08] Menus roughed in, execution of whole window or selection. Some cleanup.
 
 0.1 - [2011-01-05] initial prototype, basic execution
@@ -18,7 +20,6 @@ All Copyright dedicated to the Public Domain.
 
 Lots. This is a prototype.
 
-* Chrome execution
 * Menu bar (File, Edit, for starters)
   * Implement Open and Save
 * Context menu edit options.
