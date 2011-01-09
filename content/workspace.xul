@@ -27,6 +27,7 @@
   <command id="ws-cmd-print" oncommand="Workspace.print();"/>
   <command id="ws-cmd-contentContext" oncommand="Workspace.setContentContext();"/>
   <command id="ws-cmd-chromeContext" oncommand="Workspace.setChromeContext();"/>
+  <command id="ws-cmd-errorConsole" oncommand="Workspace.openErrorConsole();"/>
 </commandset>
 
 <keyset id="ws-keyset">
@@ -76,6 +77,10 @@
        key="r"
        command="ws-cmd-print"
        modifiers="accel"/>
+  <key id="ws-key-errorConsole"
+       key="&errorConsoleCmd.commandkey;"
+       command="ws-cmd-errorConsole"
+       modifiers="accel,shift"/>
 </keyset>
   
 
@@ -189,6 +194,18 @@
                 label="Chrome"
                 accesskey="h"
                 type="radio"/>
+    </menupopup>
+  </menu>
+
+  <menu id="ws-tools-menu"
+        label="&toolsMenu.label;"
+        accesskey="&toolsMenu.accesskey;">
+    <menupopup id="ws-menu-tools">
+      <menuitem id="ws-menu-errorConsole"
+                label="&errorConsoleCmd.label;"
+                accesskey="&errorConsoleCmd.accesskey;"
+                key="ws-key-errorConsole"
+                command="ws-cmd-errorConsole"/>
     </menupopup>
   </menu>
 </menubar>

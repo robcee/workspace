@@ -171,6 +171,8 @@ Workspace = {
     return propPanel;
   },
 
+  openErrorConsole: function() this.browserWindow.toJavaScriptConsole(),
+
   setContentContext: function WS_setContentContext() {
     document.getElementById("ws-menu-chrome").removeAttribute("checked");
     document.getElementById("ws-menu-content").setAttribute("checked", true);
