@@ -10,11 +10,13 @@ All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
 
-0.3 - [2011-01-09] Chrome and Content context menu options working.
+**0.3.1** - [2011-01-12] Revved maxVersion in install.rdf
 
-0.2 - [2011-01-08] Menus roughed in, execution of whole window or selection. Some cleanup.
+**0.3** - [2011-01-09] Chrome and Content context menu options working.
 
-0.1 - [2011-01-05] initial prototype, basic execution
+**0.2** - [2011-01-08] Menus roughed in, execution of whole window or selection. Some cleanup.
+
+**0.1** - [2011-01-05] initial prototype, basic execution
 
 ## Todo ##
 
