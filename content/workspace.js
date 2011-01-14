@@ -11,6 +11,8 @@
  *   Erik Vold
  */
 
+const Cc = Components.classes;
+const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -169,6 +171,62 @@ Workspace = {
     panel.openPopup(aAnchor, "after_pointer", 0, 0, false, false);
     panel.sizeTo(200, 400);
     return propPanel;
+  },
+
+  // File Operations
+
+  exportToFile: function WS_exportToFile(aFile) {
+    if (aFile.exists() && !window.confirm("File exists. Overwrite?"))
+      return;
+
+    let fs = Cc["@mozilla.org/network/file-output-stream;1"].
+              createInstance(Ci.nsIFileOutputStream);
+    let modeFlags = 0x02 | 0x08 | 0x20;
+    fs.init(aFile, modeFlags, 0644, 0);
+    fs.write(this.textbox.value, this.textbox.value.length);
+    fs.close();
+  },
+
+  importFromFile: function WS_importFromFile(aFile) {
+    let fs = Cc["@mozilla.org/network/file-input-stream;1"].
+                createInstance(Ci.nsIFileInputStream);
+    fs.init(aFile, -1, -1, 0);
+    let sis = Cc["@mozilla.org/scriptableinputstream;1"].
+                 createInstance(Ci.nsIScriptableInputStream);
+    sis.init(fs);
+    this.textbox.value = sis.read(sis.available());
+    sis.close();
+    fs.close();
+  },
+
+  openFile: function WS_openFile() {
+    let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    fp.init(window, "Open File",
+            Ci.nsIFilePicker.modeOpen);
+    fp.defaultString = "";
+    if (fp.show() != Ci.nsIFilePicker.returnCancel) {
+      window.document.title = this.filename = fp.file.path;
+      this.importFromFile(fp.file);
+    }
+  },
+
+  saveFile: function WS_saveFile() {
+    if (!this.filename)
+      return;
+    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+    file.initWithPath(this.filename);
+    this.exportToFile(file);
+  },
+
+  saveFileAs: function WS_saveFileAs() {
+    let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    fp.init(window, "Save File As",
+            Ci.nsIFilePicker.modeSave);
+    fp.defaultString = "workspace.js";
+    if (fp.show() != Ci.nsIFilePicker.returnCancel) {
+      window.document.title = this.filename = fp.file.path;
+      this.exportToFile(fp.file);
+    }
   },
 
   setContentContext: function WS_setContentContext() {

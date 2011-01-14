@@ -17,9 +17,10 @@
 <script type="application/javascript" src="chrome://workspace/content/workspace.js"/>
 
 <commandset id="ws-commandset">
-  <command id="ws-cmd-newWindow" oncommand="Workspace.openWorkspace();" disabled="true"/>
-  <command id="ws-cmd-openFile" oncommand="Workspace.openFile();" disabled="true"/>
-  <command id="ws-cmd-save" oncommand="Workspace.saveFile();" disabled="true"/>
+  <command id="ws-cmd-newWindow" oncommand="Workspace.openWorkspace();"/>
+  <command id="ws-cmd-openFile" oncommand="Workspace.openFile();"/>
+  <command id="ws-cmd-save" oncommand="Workspace.saveFile();"/>
+  <command id="ws-cmd-saveas" oncommand="Workspace.saveFileAs();"/>
   <command id="ws-cmd-printFile" oncommand="Workspace.printFile();" disabled="true"/>
   <command id="ws-cmd-close" oncommand="window.close();"/>
   <command id="ws-cmd-execute" oncommand="Workspace.execute();"/>
@@ -95,10 +96,13 @@
                 key="ws-key-open"
                 accesskey="&openFileCmd.accesskey;"/>
       <menuitem id="ws-menu-save"
-                label="Save…"
+                label="Save"
                 accesskey="&savePageCmd.accesskey;"
                 key="ws-key-save"
                 command="ws-cmd-save"/>
+      <menuitem id="ws-menu-saveas"
+                label="Save As…"
+                command="ws-cmd-saveas"/>
       <menuseparator/>
       <menuitem id="ws-menu-print"
                 label="&printCmd.label;"

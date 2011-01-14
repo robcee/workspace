@@ -10,6 +10,8 @@ All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
 
+**0.4** - [2011-01-13] Added File functions.
+
 **0.3.1** - [2011-01-12] Revved maxVersion in install.rdf
 
 **0.3** - [2011-01-09] Chrome and Content context menu options working.
