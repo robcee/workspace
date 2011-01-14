@@ -20,6 +20,8 @@ Cu.import("resource:///modules/PropertyPanel.jsm");
 
 const WS_CONTEXT_CONTENT = 1;
 const WS_CONTEXT_CHROME = 2;
+const WS_WINDOW_URL = "chrome://workspace/content/workspace.xul";
+const WS_WINDOW_FEATURES = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
 
 Workspace = {
   win: null,
@@ -173,7 +175,12 @@ Workspace = {
     return propPanel;
   },
 
-  // File Operations
+  // Menu Operations
+
+  openWorkspace: function WS_openWorkspace() {
+    Services.ww.openWindow(null, WS_WINDOW_URL, "_blank",
+                           WS_WINDOW_FEATURES, null);
+  },
 
   exportToFile: function WS_exportToFile(aFile) {
     if (aFile.exists() && !window.confirm("File exists. Overwrite?"))
@@ -205,14 +212,14 @@ Workspace = {
             Ci.nsIFilePicker.modeOpen);
     fp.defaultString = "";
     if (fp.show() != Ci.nsIFilePicker.returnCancel) {
-      window.document.title = this.filename = fp.file.path;
+      document.title = this.filename = fp.file.path;
       this.importFromFile(fp.file);
     }
   },
 
   saveFile: function WS_saveFile() {
     if (!this.filename)
-      return;
+      this.saveFileAs();
     let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
     file.initWithPath(this.filename);
     this.exportToFile(file);
@@ -224,7 +231,7 @@ Workspace = {
             Ci.nsIFilePicker.modeSave);
     fp.defaultString = "workspace.js";
     if (fp.show() != Ci.nsIFilePicker.returnCancel) {
-      window.document.title = this.filename = fp.file.path;
+      document.title = this.filename = fp.file.path;
       this.exportToFile(fp.file);
     }
   },
