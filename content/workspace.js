@@ -219,7 +219,7 @@ Workspace = {
 
   saveFile: function WS_saveFile() {
     if (!this.filename)
-      this.saveFileAs();
+      return this.saveFileAs();
     let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
     file.initWithPath(this.filename);
     this.exportToFile(file);
