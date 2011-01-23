@@ -2,10 +2,19 @@
 <!DOCTYPE overlay PUBLIC "-//MOZILLA//DTD XUL V1.0//EN" "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 <?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
 
-<overlay id="workspace-browser-overlay"
+<overlay id="workspace-tools-menuitem-overlay"
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-  <menupopup id="appmenu_webDeveloper_popup">
-    <menuitem id="appmenu_workspace"
+  <script type="application/x-javascript" src="chrome://workspace/content/browser.js"></script>
+
+  <keyset id="mainKeyset">
+    <key id="ws-newWorkspaceKey"
+         keycode="VK_F4"
+         keytext="F4"
+         oncommand="openWorkspace();"/>
+  </keyset>
+
+  <menupopup id="menu_ToolsPopup">
+    <menuitem id="menu_workspace"
               label="Workspace"
               key="ws-newWorkspaceKey"
               oncommand="openWorkspace();"
