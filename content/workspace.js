@@ -175,7 +175,6 @@ Workspace = {
     return propPanel;
   },
 
-<<<<<<< HEAD
   // Menu Operations
 
   openWorkspace: function WS_openWorkspace() {
@@ -252,4 +251,4 @@ Workspace = {
     document.getElementById("ws-menu-chrome").setAttribute("checked", true);
     this.executionContext = WS_CONTEXT_CHROME;
   }
-}
+};
