@@ -117,6 +117,7 @@ Workspace = {
     if (selectionStart == selectionEnd)
       selectionEnd = this.textbox.value.length;
     let result = this.evalForContext(selection);
+    if (!result) return;
     let firstPiece = this.textbox.value.slice(0, selectionEnd);
     let lastPiece = this.textbox.value.slice(selectionEnd + 1, this.textbox.value.length);
     this.textbox.value = firstPiece + "\n " + result.toString() + "\n" + lastPiece;
