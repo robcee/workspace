@@ -8,7 +8,7 @@
  *
  * Contributors:
  *   Rob Campbell <robcee@mozilla.com>, original author
- *   Erik Vold
+ *   Erik Vold <erikvvold@gmail.com>
  */
 
 const Cc = Components.classes;
