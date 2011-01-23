@@ -175,6 +175,7 @@ Workspace = {
     return propPanel;
   },
 
+<<<<<<< HEAD
   // Menu Operations
 
   openWorkspace: function WS_openWorkspace() {
@@ -234,6 +235,10 @@ Workspace = {
       document.title = this.filename = fp.file.path;
       this.exportToFile(fp.file);
     }
+  },
+
+  openErrorConsole: function WS_openErrorConsole() {
+    this.browserWindow.toJavaScriptConsole();
   },
 
   setContentContext: function WS_setContentContext() {
