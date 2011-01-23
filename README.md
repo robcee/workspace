@@ -10,7 +10,9 @@ All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
 
-**0.4.1** _ [2011-01-23] Added Tools menu and Error Console access (erikvold-issue-9)
+**0.4.2** - [2011-01-23] bug fix for issue 11.
+
+**0.4.1** - [2011-01-23] Added Tools menu and Error Console access. (erikvold-issue-9)
 
 **0.4** - [2011-01-13] Added File functions.
 
