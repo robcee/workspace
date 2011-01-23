@@ -11,6 +11,7 @@
         title="Workspace"
         windowtype="devtools:workspace"
         screenX="4" screenY="4"
+        width="640" height="480"
         persist="screenX screenY width height sizemode">
 
 <!-- script type="application/javascript" src="chrome://browser/content/nsContextMenu.js"/ -->
