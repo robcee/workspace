@@ -28,6 +28,8 @@ Workspace = {
   executionContext: WS_CONTEXT_CONTENT,
 
   get textbox() document.getElementById("workspace-textbox"),
+  get statusbar() document.getElementById("workspace-statusbar"),
+  get statusbarStatus() document.getElementById("workspace-status"),
 
   get selectedText() {
     let text = this.textbox.value;
@@ -244,12 +246,14 @@ Workspace = {
   setContentContext: function WS_setContentContext() {
     document.getElementById("ws-menu-chrome").removeAttribute("checked");
     document.getElementById("ws-menu-content").setAttribute("checked", true);
+    this.statusbarStatus.label = "content";
     this.executionContext = WS_CONTEXT_CONTENT;
   },
 
   setChromeContext: function WS_setChromeContext() {
     document.getElementById("ws-menu-content").removeAttribute("checked");
     document.getElementById("ws-menu-chrome").setAttribute("checked", true);
+    this.statusbarStatus.label = "chrome";
     this.executionContext = WS_CONTEXT_CHROME;
   }
 };

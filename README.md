@@ -10,6 +10,8 @@ All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
 
+**0.4.3** [2011-01-23] replaced statusbar text with chrome/content status.
+
 **0.4.2** - [2011-01-23] bug fix for issue 11.
 
 **0.4.1** - [2011-01-23] Added Tools menu and Error Console access. (erikvold-issue-9)
