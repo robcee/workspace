@@ -9,6 +9,7 @@
  * Contributors:
  *   Rob Campbell <robcee@mozilla.com>, original author
  *   Erik Vold <erikvvold@gmail.com>
+ *   David Dahl <ddahl@mozilla.com>
  */
 
 const Cc = Components.classes;
@@ -55,6 +56,22 @@ Workspace = {
     return sandbox;
   },
 
+  get chromeSandbox() {
+    var win = this.browserWindow.QueryInterface(Ci.nsIDOMWindow)
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebNavigation)
+      .QueryInterface(Ci.nsIDocShellTreeItem)
+      .rootTreeItem
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDOMWindow)
+      .QueryInterface(Ci.nsIDOMChromeWindow);
+
+    let sandbox = new Cu.Sandbox(win,
+                                 { sandboxPrototype: win, wantXrays: false });
+
+    return sandbox;
+  },
+
   hasSelection: function WS_hasSelection() {
     return !!this.textbox.selectedText;
   },
@@ -88,12 +105,16 @@ Workspace = {
     return Cu.evalInSandbox(aString, this.sandbox, "1.8", "Workspace", 1);
   },
 
+  evalInChromeSandbox: function WS_evalInChromeSandbox(aString) {
+    return Cu.evalInSandbox(aString, this.chromeSandbox, "1.8", "Workspace", 1);
+  },
+
   evalForContext: function WS_evaluateForContext(aString) {
     if (this.executionContext == WS_CONTEXT_CONTENT)
       return this.evalInSandbox(aString);
 
     // chrome
-    return eval(aString);
+    return this.evalInChromeSandbox(aString);
   },
 
   execute: function WS_execute(aEvent) {
@@ -123,7 +144,7 @@ Workspace = {
     let firstPiece = this.textbox.value.slice(0, selectionEnd);
     let lastPiece = this.textbox.value.slice(selectionEnd + 1, this.textbox.value.length);
     this.textbox.value = firstPiece + "\n " + result.toString() + "\n" + lastPiece;
-    this.selectRange(this.textbox.selectionEnd + 2, 
+    this.selectRange(this.textbox.selectionEnd + 2,
       this.textbox.selectionStart + result.length);
   },
 
@@ -147,7 +168,7 @@ Workspace = {
         accesskey: "U",
         oncommand: function () {
           try {
-            let result = self.evalInSandbox(aEvalString);
+            let result = self.evalForContext(aEvalString);
 
             if (result !== undefined)
               propPanel.treeView.data = result;
