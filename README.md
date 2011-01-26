@@ -10,6 +10,8 @@ All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
 
+**0.5** [2011-01-26] chrome sandbox, edit menus operational.
+
 **0.4.4** [2011-01-23] added shortcut key to error console.
 
 **0.4.3** [2011-01-23] replaced statusbar text with chrome/content status.

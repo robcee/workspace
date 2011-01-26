@@ -4,7 +4,7 @@
     <Description about="urn:mozilla:install-manifest">
         <em:id>workspace@antennasoft.net</em:id>
         <em:name>Workspace</em:name>
-        <em:version>0.4.4</em:version>
+        <em:version>0.5</em:version>
         <em:description>A simple editor for executing snippets of JS.</em:description>
         <em:creator>Rob Campbell</em:creator>
         <em:contributor>Erik Vold</em:contributor>
