@@ -1,4 +1,5 @@
 content workspace content/
+skin workspace skin skin/
 overlay chrome://browser/content/browser.xul chrome://workspace/content/browser.xul
 overlay chrome://browser/content/browser.xul chrome://workspace/content/tools-menuitem.xul
 overlay chrome://global/content/console.xul chrome://workspace/content/tools-menuitem.xul

@@ -1,0 +1,17 @@
+#workspace-textbox {
+    min-height: 250px; min-width: 300px;
+}
+
+#workspace-output {
+    overflow: auto; 
+    max-height: 200px; 
+    font-family: monospace; 
+    height:200px; 
+    color: green; 
+    background-color:black;
+    -moz-user-select: text;
+}
+
+#workspace-output.hidden {
+    display: none;
+}

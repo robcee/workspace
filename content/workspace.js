@@ -69,7 +69,93 @@ Workspace = {
     let sandbox = new Cu.Sandbox(win,
                                  { sandboxPrototype: win, wantXrays: false });
 
-    return sandbox;
+    return this.decorateChromeSandbox(sandbox);
+  },
+
+  get outputNode() document.getElementById("workspace-output"),
+
+  decorateChromeSandbox: function WS_decorateSandbox(aSandbox) {
+    let self = this;
+    let log = function log(aMsg) {
+      let msgNode = document.createElement("hbox");
+      msgNode.setAttribute("flex", 1);
+      let dataNode = document.createElement("description");
+      dataNode.textContent = aMsg;
+      msgNode.appendChild(dataNode);
+      self.outputNode.appendChild(msgNode);
+      // scroll into view
+      let nsIScrollBoxObject =
+        self.outputNode.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+      nsIScrollBoxObject.ensureElementIsVisible(msgNode);
+    };
+
+    let props = function WS_props(aObj) {
+      for (let prop in aObj) {
+        if (typeof aObj[prop] == 'function') {
+          log("function " + prop);
+        }
+        else {
+          log(prop + ": " + aObj[prop]);
+        }
+      }
+    };
+
+    let explore = function explore(obj, aString) {
+      log("searching...");
+      let doNotSearch = false;
+      if (!aString) {
+         doNotSearch = true;
+      }
+      let pat = new RegExp(aString, "i");
+      let found = false;
+      for (let prop in obj) {
+        if (doNotSearch) {
+          log(prop  + ": " + obj[prop]);
+            props(obj[prop]);
+        }
+        else {
+          if (pat.test(prop)) {
+            log(prop  + ": " + obj[prop]);
+            props(obj[prop]);
+          }
+          found = true;
+        }
+
+      }
+      if (!found) {
+        log("No matches");
+      }
+    };
+
+    let findCi = function findCi(aString)  {
+      explore(Ci, aString);
+    };
+
+    let findCc = function findCc(aString) {
+      explore(Ci, aString);
+    };
+
+    let help = function help() {
+      log("// HELP //");
+      log("log(aMessage) - Logs a message to this console");
+      log("props(aObject) - Logs an object's properties this console)");
+      log("explore(aObject, aPropertyName) - look in an object for a specific property");
+      log("findCi(aInterfaceName) - look in Components.interfaces for an interface name");
+      log("findCc(aComponentName) - look in Components.classes for a component name");
+      log("SYS_JSMS - an array of Javscript module names in toolkit, firefox and gecko");
+      log("loadJSM(aJSMName) - easily load a JSM into the current scope");
+    };
+
+    aSandbox.log = log;
+    aSandbox.props = props;
+    aSandbox.explore = explore;
+    aSandbox.findCi = findCi;
+    aSandbox.findCc = findCc;
+    aSandbox.SYS_JSMS = jsms;
+    aSandbox.loadJSM = loadJSM;
+    aSandbox.help = help;
+
+    return aSandbox;
   },
 
   hasSelection: function WS_hasSelection() {
@@ -269,6 +355,10 @@ Workspace = {
     document.getElementById("ws-menu-content").setAttribute("checked", true);
     this.statusbarStatus.label = "content";
     this.executionContext = WS_CONTEXT_CONTENT;
+    let outputNode = document.getElementById("workspace-output");
+    if (!outputNode.classList.contains("hidden")) {
+      outputNode.classList.add("hidden");
+    }
   },
 
   setChromeContext: function WS_setChromeContext() {
@@ -276,5 +366,9 @@ Workspace = {
     document.getElementById("ws-menu-chrome").setAttribute("checked", true);
     this.statusbarStatus.label = "chrome";
     this.executionContext = WS_CONTEXT_CHROME;
+    let outputNode = document.getElementById("workspace-output");
+    if (outputNode.classList.contains("hidden")) {
+      outputNode.classList.remove("hidden");
+    }
   }
 };
