@@ -9,7 +9,13 @@
     height:200px; 
     color: green; 
     background-color:black;
+    cursor: text !important;
+}
+
+#workspace-output * {
     -moz-user-select: text;
+    white-space: pre-wrap;
+    -moz-user-focus: normal;
 }
 
 #workspace-output.hidden {

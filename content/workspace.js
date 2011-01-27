@@ -78,6 +78,7 @@ Workspace = {
     let self = this;
     let log = function log(aMsg) {
       let msgNode = document.createElement("hbox");
+      msgNode.classList.add("workspace-console-msg-node");
       msgNode.setAttribute("flex", 1);
       let dataNode = document.createElement("description");
       dataNode.textContent = aMsg;
@@ -146,6 +147,14 @@ Workspace = {
       log("loadJSM(aJSMName) - easily load a JSM into the current scope");
     };
 
+    let clear = function clear() {
+      let nodes = document.querySelectorAll(".workspace-console-msg-node");
+      let len = nodes.length;
+      for (let i = 0; i < len; i++) {
+        nodes[i].parentNode.removeChild(nodes[i]);
+      }
+    };
+
     aSandbox.log = log;
     aSandbox.props = props;
     aSandbox.explore = explore;
@@ -154,6 +163,7 @@ Workspace = {
     aSandbox.SYS_JSMS = jsms;
     aSandbox.loadJSM = loadJSM;
     aSandbox.help = help;
+    aSandbox.clear = clear;
 
     return aSandbox;
   },
