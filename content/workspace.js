@@ -18,6 +18,7 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
+Cu.import("resource://gre/modules/HUDService.jsm");
 
 const WS_CONTEXT_CONTENT = 1;
 const WS_CONTEXT_CHROME = 2;
@@ -57,14 +58,7 @@ Workspace = {
   },
 
   get chromeSandbox() {
-    var win = this.browserWindow.QueryInterface(Ci.nsIDOMWindow)
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIWebNavigation)
-      .QueryInterface(Ci.nsIDocShellTreeItem)
-      .rootTreeItem
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIDOMWindow)
-      .QueryInterface(Ci.nsIDOMChromeWindow);
+    var win = HUDService.getChromeWindowFromContentWindow(this.browserWindow);
 
     let sandbox = new Cu.Sandbox(win,
                                  { sandboxPrototype: win, wantXrays: false });
