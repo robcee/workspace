@@ -10,6 +10,8 @@ All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
 
+**0.5.1** [2011-02-03] changed WS_ to WORKSPACE_ per AMO review request.
+
 **0.5** [2011-01-26] chrome sandbox, edit menus operational.
 
 **0.4.4** [2011-01-23] added shortcut key to error console.
@@ -34,11 +36,6 @@ All Copyright dedicated to the Public Domain.
 
 Lots. This is a prototype.
 
-* Menu bar (File, Edit, for starters)
-  * Implement Open and Save
-* Context menu edit options.
-  * need more wiring
-* Ruler (Row/Col)
 * Persist on restart
 * Import from pastebin, github, etc.
 * Better styling, ACE?
