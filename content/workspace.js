@@ -19,14 +19,14 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
 
-const WS_CONTEXT_CONTENT = 1;
-const WS_CONTEXT_CHROME = 2;
-const WS_WINDOW_URL = "chrome://workspace/content/workspace.xul";
-const WS_WINDOW_FEATURES = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
+const WORKSPACE_CONTEXT_CONTENT = 1;
+const WORKSPACE_CONTEXT_CHROME = 2;
+const WORKSPACE_WINDOW_URL = "chrome://workspace/content/workspace.xul";
+const WORKSPACE_WINDOW_FEATURES = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
 
 Workspace = {
   win: null,
-  executionContext: WS_CONTEXT_CONTENT,
+  executionContext: WORKSPACE_CONTEXT_CONTENT,
 
   get textbox() document.getElementById("workspace-textbox"),
   get statusbar() document.getElementById("workspace-statusbar"),
@@ -102,7 +102,7 @@ Workspace = {
   },
 
   evalInSandbox: function WS_evalInSandbox(aString) {
-    return Cu.evalInSandbox(aString, this.sandbox, "1.8", "Workspace", 1);
+    return Cu.evalInSandbox(aString, this.sandbox, "1.8git ", "Workspace", 1);
   },
 
   evalInChromeSandbox: function WS_evalInChromeSandbox(aString) {
@@ -110,7 +110,7 @@ Workspace = {
   },
 
   evalForContext: function WS_evaluateForContext(aString) {
-    if (this.executionContext == WS_CONTEXT_CONTENT)
+    if (this.executionContext == WORKSPACE_CONTEXT_CONTENT)
       return this.evalInSandbox(aString);
 
     // chrome
@@ -202,8 +202,8 @@ Workspace = {
   // Menu Operations
 
   openWorkspace: function WS_openWorkspace() {
-    Services.ww.openWindow(null, WS_WINDOW_URL, "_blank",
-                           WS_WINDOW_FEATURES, null);
+    Services.ww.openWindow(null, WORKSPACE_WINDOW_URL, "_blank",
+                           WORKSPACE_WINDOW_FEATURES, null);
   },
 
   exportToFile: function WS_exportToFile(aFile) {
@@ -268,13 +268,13 @@ Workspace = {
     document.getElementById("ws-menu-chrome").removeAttribute("checked");
     document.getElementById("ws-menu-content").setAttribute("checked", true);
     this.statusbarStatus.label = "content";
-    this.executionContext = WS_CONTEXT_CONTENT;
+    this.executionContext = WORKSPACE_CONTEXT_CONTENT;
   },
 
   setChromeContext: function WS_setChromeContext() {
     document.getElementById("ws-menu-content").removeAttribute("checked");
     document.getElementById("ws-menu-chrome").setAttribute("checked", true);
     this.statusbarStatus.label = "chrome";
-    this.executionContext = WS_CONTEXT_CHROME;
+    this.executionContext = WORKSPACE_CONTEXT_CHROME;
   }
 };
