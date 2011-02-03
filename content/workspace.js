@@ -102,7 +102,7 @@ Workspace = {
   },
 
   evalInSandbox: function WS_evalInSandbox(aString) {
-    return Cu.evalInSandbox(aString, this.sandbox, "1.8git ", "Workspace", 1);
+    return Cu.evalInSandbox(aString, this.sandbox, "1.8", "Workspace", 1);
   },
 
   evalInChromeSandbox: function WS_evalInChromeSandbox(aString) {
