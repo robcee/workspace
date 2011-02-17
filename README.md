@@ -14,7 +14,7 @@ All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
 
-**0.5.3** [2011-02-16] Removed close button on PropertyPanel
+**0.5.3** [2011-02-16] Removed close button on PropertyPanel, incorporated erikvold-issue-20.
 
 **0.5.1** [2011-02-03] changed WS_ to WORKSPACE_ per AMO review request.
 
