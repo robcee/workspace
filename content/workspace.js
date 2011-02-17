@@ -172,24 +172,15 @@ Workspace = {
       });
     }
 
-    buttons.push({
-      label: "Close",
-      accesskey: "C",
-      class: "jsPropertyPanelCloseButton",
-      oncommand: function () {
-        propPanel.destroy();
-        aAnchor._panelOpen = false;
-      }
-    });
-
     let doc = this.browserWindow.document;
     let parent = doc.getElementById("mainPopupSet");
-    let title = "Object";
+    let title = aOutputObject.toString();
     propPanel = new PropertyPanel(parent, doc, title, aOutputObject, buttons);
 
     let panel = propPanel.panel;
     panel.openPopup(aAnchor, "after_pointer", 0, 0, false, false);
     panel.sizeTo(200, 400);
+
     return propPanel;
   },
 
