@@ -4,11 +4,17 @@
 
 A **Workspace** is a simple editor for entering and executing Javascript on a content window. Enter some text, select what you want to run and pick Execute from the context menu to evaluate it against the currently-active tab in a browser window.
 
+## Build Instructions ##
+
+zip -r ../workspace.xpi * -x ".git/*"
+
 ## License ##
 
 All Copyright dedicated to the Public Domain.
 
 ## Changelog ##
+
+**0.5.3** [2011-02-16] Removed close button on PropertyPanel
 
 **0.5.1** [2011-02-03] changed WS_ to WORKSPACE_ per AMO review request.
 
