@@ -10,6 +10,7 @@ For an installable version, please visit the [Add-ons page](https://addons.mozil
 
 ## Build Instructions ##
 
+From inside the workspace project directory, run:
 zip -r ../workspace.xpi * -x ".git/*"
 
 ## License ##
