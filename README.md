@@ -4,6 +4,10 @@
 
 A **Workspace** is a simple editor for entering and executing Javascript on a content window. Enter some text, select what you want to run and pick Execute from the context menu to evaluate it against the currently-active tab in a browser window.
 
+## Installation ##
+
+For an installable version, please visit the [Add-ons page](https://addons.mozilla.org/en-US/firefox/addon/workspace/ "Workspace on AMO")
+
 ## Build Instructions ##
 
 zip -r ../workspace.xpi * -x ".git/*"
