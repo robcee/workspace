@@ -8,6 +8,7 @@
 
 <window id="main-window"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:html="http://www.w3.org/1999/xhtml"
         title="Workspace"
         windowtype="devtools:workspace"
         screenX="4" screenY="4"
@@ -15,8 +16,21 @@
         persist="screenX screenY width height sizemode">
 
 <!-- script type="application/javascript" src="chrome://browser/content/nsContextMenu.js"/ -->
+
 <script type="application/javascript" src="chrome://global/content/globalOverlay.js"/>
+<script type="application/javascript" src="chrome://workspace/content/ace/ace-uncompressed.js" />
+<script type="application/javascript" src="chrome://workspace/content/ace/mode-javascript-uncompressed.js" />
 <script type="application/javascript" src="chrome://workspace/content/workspace.js"/>
+
+<html:style>
+  #workspace-source-container {
+    background: #fff;
+  }
+  #workspace-source-input {
+    width: 100%;
+    height: 300px;
+  }
+</html:style>
 
 <commandset id="editMenuCommands"/>
 
@@ -236,11 +250,12 @@
   </menupopup>
 </popupset>
 
-<textbox id="workspace-textbox"
-         multiline="true"
-         flex="1"
-         context="workspace-text-popup"
-         placeholder="// Enter some JavaScript, select it, right click and choose your weapon." />
+<box id="workspace-source-container" flex="1" context="workspace-text-popup">
+<html:pre id="workspace-source-input">
+// Enter some JavaScript, select it, right click and choose your weapon.
+</html:pre>
+</box>
+
 <statusbar id="workspace-statusbar" align="end">
   <statusbarpanel id="workspace-status" label="content" class="statusbarpanel-iconic-text"/>
   <spacer flex="1"/>

@@ -10,6 +10,7 @@
  *   Rob Campbell <robcee@mozilla.com>, original author
  *   Erik Vold <erikvvold@gmail.com>
  *   David Dahl <ddahl@mozilla.com>
+ *   Mihai Sucan <mihai.sucan@gmail.com>
  */
 
 const Cc = Components.classes;
@@ -29,7 +30,7 @@ Workspace = {
   win: null,
   executionContext: WORKSPACE_CONTEXT_CONTENT,
 
-  get textbox() document.getElementById("workspace-textbox"),
+  get textbox() document.getElementById("workspace-source-input"),
   get statusbar() document.getElementById("workspace-statusbar"),
   get statusbarStatus() document.getElementById("workspace-status"),
 
@@ -261,5 +262,15 @@ Workspace = {
     document.getElementById("ws-menu-chrome").setAttribute("checked", true);
     this.statusbarStatus.label = "chrome";
     this.executionContext = WORKSPACE_CONTEXT_CHROME;
-  }
+  },
+
+  onLoad: function WS_onLoad() {
+    this.editor = ace.edit(this.textbox);
+
+    let JavaScriptMode = require("ace/mode/javascript").Mode;
+    this.editor.getSession().setMode(new JavaScriptMode());
+  },
 };
+
+window.addEventListener("load", Workspace.onLoad.bind(Workspace), false);
+
