@@ -17,9 +17,14 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
 Cu.import("resource://gre/modules/HUDService.jsm");
+
+XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
+                                   "@mozilla.org/widget/clipboardhelper;1",
+                                   "nsIClipboardHelper");
 
 const WORKSPACE_CONTEXT_CONTENT = 1;
 const WORKSPACE_CONTEXT_CHROME = 2;
@@ -30,17 +35,17 @@ Workspace = {
   win: null,
   executionContext: WORKSPACE_CONTEXT_CONTENT,
 
+  get textboxContainer() document.getElementById("workspace-source-container"),
   get textbox() document.getElementById("workspace-source-input"),
   get statusbar() document.getElementById("workspace-statusbar"),
   get statusbarStatus() document.getElementById("workspace-status"),
 
-  get selectedText() {
-    let text = this.textbox.value;
-    let selectionStart = this.textbox.selectionStart;
-    let selectionEnd = this.textbox.selectionEnd;
-    if (selectionStart != selectionEnd)
-      return text.substring(selectionStart, selectionEnd);
-    return "";
+  getSelectedText: function WS_getSelectedText() {
+    return this.editor.getCopyText();
+  },
+
+  getTextboxValue: function WS_getTextboxValue() {
+    return this.editor.getSession().getValue();
   },
 
   get browserWindow() Services.wm.getMostRecentWindow("navigator:browser"),
@@ -67,33 +72,110 @@ Workspace = {
     return sandbox;
   },
 
-  hasSelection: function WS_hasSelection() {
-    return !!this.textbox.selectedText;
+  undo: function WS_undo() {
+    return this.editor.undo();
   },
 
-  hasClipboard: function WS_hasClipboard() {
-    return false; //tbd
+  redo: function WS_redo() {
+    return this.editor.redo();
+  },
+
+  copySelection: function WS_copySelection() {
+    let text = this.getSelectedText();
+    if (text) {
+      clipboardHelper.copyString(text);
+    }
+  },
+
+  cutSelection: function WS_cutSelection() {
+    let text = this.getSelectedText();
+    if (text) {
+      clipboardHelper.copyString(text);
+      this.editor.onCut();
+    }
+  },
+
+  pasteSelection: function WS_pasteSelection() {
+    let text = this.getClipboardContent();
+    if (text) {
+      this.editor.insert(text);
+    }
+  },
+
+  hasSelection: function WS_hasSelection() {
+    return !this.editor.getSelectionRange().isEmpty();
+  },
+
+  getClipboardContent: function WS_getClipboardContent() {
+    let clip = Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard);
+    if (!clip)
+      return "";
+
+    let trans = Cc["@mozilla.org/widget/transferable;1"].createInstance(Ci.nsITransferable);
+    if (!trans)
+      return "";
+
+    trans.addDataFlavor("text/unicode");
+
+    clip.getData(trans, clip.kGlobalClipboard);
+
+    let str = new Object();
+    let strLength = new Object();
+
+    trans.getTransferData("text/unicode", str, strLength);
+
+    let result = "";
+    if (str && str.value && strLength.value) {
+      str = str.value.QueryInterface(Ci.nsISupportsString);
+      result = str.data.substring(0, strLength.value / 2);
+    }
+
+    return result;
   },
 
   updateEditUIVisibility: function WS_updateEditUIVisibility() {
-    if (this.hasSelection) {
-      document.getElementById("ws-menu-cut").removeAttribute("disabled");
-      document.getElementById("ws-menu-copy").removeAttribute("disabled");
+    let cmdUndo = document.getElementById("ws-cmd-undo");
+    let cmdRedo = document.getElementById("ws-cmd-redo");
+    let cmdCut = document.getElementById("ws-cmd-cutSelection");
+    let cmdCopy = document.getElementById("ws-cmd-copySelection");
+    let cmdPaste = document.getElementById("ws-cmd-pasteSelection");
+
+    if (this.hasSelection()) {
+      cmdCut.removeAttribute("disabled");
+      cmdCopy.removeAttribute("disabled");
     } else {
-      document.getElementById("ws-menu-cut").setAttribute("disabled", true);
-      document.getElementById("ws-menu-copy").setAttribute("disabled", true);
+      cmdCut.setAttribute("disabled", "true");
+      cmdCopy.setAttribute("disabled", "true");
     }
-    document.getElementById("ws-menu-paste").setAttribute("disabled", !this.hasClipboard());
+
+    if (this.getClipboardContent()) {
+      cmdPaste.removeAttribute("disabled");
+    } else {
+      cmdPaste.setAttribute("disabled", "true");
+    }
+
+    let undoManager = this.editor.getSession().getUndoManager();
+    if (undoManager.hasUndo()) {
+      cmdUndo.removeAttribute("disabled");
+    } else {
+      cmdUndo.setAttribute("disabled", "true");
+    }
+
+    if (undoManager.hasRedo()) {
+      cmdRedo.removeAttribute("disabled");
+    } else {
+      cmdRedo.setAttribute("disabled", "true");
+    }
   },
 
   deselect: function WS_deselect() {
-    this.textbox.selectionEnd = this.textbox.selectionStart;
+    this.editor.clearSelection();
     return this;
   },
 
-  selectRange: function WS_selectRange(aStart, aEnd) {
-    this.textbox.selectionStart = aStart;
-    this.textbox.selectionEnd = aEnd;
+  selectAll: function WS_selectAll() {
+    this.editor.selectAll();
+    return this;
   },
 
   evalInSandbox: function WS_evalInSandbox(aString) {
@@ -113,13 +195,13 @@ Workspace = {
   },
 
   execute: function WS_execute(aEvent) {
-    let selection = this.selectedText || this.textbox.value;
+    let selection = this.getSelectedText() || this.getTextboxValue();
     this.evalForContext(selection);
     this.deselect();
   },
 
   inspect: function WS_inspect(aEvent) {
-    let selection = this.selectedText || this.textbox.value;
+    let selection = this.getSelectedText() || this.getTextboxValue();
     let result = this.evalForContext(selection);
 
     if (result)
@@ -129,18 +211,11 @@ Workspace = {
   },
 
   print: function WS_print(aEvent) {
-    let selection = this.selectedText || this.textbox.value;
-    let selectionStart = this.textbox.selectionStart;
-    let selectionEnd = this.textbox.selectionEnd;
-    if (selectionStart == selectionEnd)
-      selectionEnd = this.textbox.value.length;
+    let selection = this.getSelectedText() || this.getTextboxValue();
     let result = this.evalForContext(selection);
     if (!result) return;
-    let firstPiece = this.textbox.value.slice(0, selectionEnd);
-    let lastPiece = this.textbox.value.slice(selectionEnd + 1, this.textbox.value.length);
-    this.textbox.value = firstPiece + "\n " + result.toString() + "\n" + lastPiece;
-    this.selectRange(this.textbox.selectionEnd + 2,
-      this.textbox.selectionStart + result.length);
+
+    this.editor.insert(result.toString());
   },
 
   openPropertyPanel: function WS_openPropertyPanel(aEvalString, aOutputObject,
@@ -200,7 +275,10 @@ Workspace = {
               createInstance(Ci.nsIFileOutputStream);
     let modeFlags = 0x02 | 0x08 | 0x20;
     fs.init(aFile, modeFlags, 0644, 0);
-    fs.write(this.textbox.value, this.textbox.value.length);
+
+    let text = this.getTextboxValue();
+    fs.write(text, text.length);
+
     fs.close();
   },
 
@@ -211,7 +289,9 @@ Workspace = {
     let sis = Cc["@mozilla.org/scriptableinputstream;1"].
                  createInstance(Ci.nsIScriptableInputStream);
     sis.init(fs);
-    this.textbox.value = sis.read(sis.available());
+
+    this.editor.getSession().setValue(sis.read(sis.available()));
+
     sis.close();
     fs.close();
   },
@@ -265,12 +345,41 @@ Workspace = {
   },
 
   onLoad: function WS_onLoad() {
+    window.removeEventListener("load", this.onLoad, false);
     this.editor = ace.edit(this.textbox);
 
+    this.editor.renderer.setHScrollBarAlwaysVisible(false);
+
     let JavaScriptMode = require("ace/mode/javascript").Mode;
-    this.editor.getSession().setMode(new JavaScriptMode());
+
+    let session = this.editor.getSession();
+
+    session.setMode(new JavaScriptMode());
+    session.setUseWrapMode(true);
+    session.setWrapLimitRange(null, null);
+    this.editor.renderer.setPrintMarginColumn(80);
+
+    window.addEventListener("resize", this.onResize, false);
+    this.onResize();
+  },
+
+  onResize: function WS_onResize() {
+    this.textbox.style.width = 0;
+    this.textbox.style.height = 0;
+
+    this.textbox.style.width = this.textboxContainer.clientWidth + "px";
+    this.textbox.style.height = this.textboxContainer.clientHeight + "px";
+    this.editor.resize();
+  },
+
+  init: function WS_init() {
+    this.onLoad = this.onLoad.bind(this);
+    this.onResize = this.onResize.bind(this);
+
+    window.addEventListener("load", this.onLoad, false);
   },
 };
 
-window.addEventListener("load", Workspace.onLoad.bind(Workspace), false);
+Workspace.init();
+
 

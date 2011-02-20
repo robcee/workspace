@@ -4,7 +4,6 @@
  %browserDTD;
 ]>
 <?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
-<?xul-overlay href="chrome://global/content/editMenuOverlay.xul"?>
 
 <window id="main-window"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -22,18 +21,6 @@
 <script type="application/javascript" src="chrome://workspace/content/ace/mode-javascript-uncompressed.js" />
 <script type="application/javascript" src="chrome://workspace/content/workspace.js"/>
 
-<html:style>
-  #workspace-source-container {
-    background: #fff;
-  }
-  #workspace-source-input {
-    width: 400px;
-    height: 300px;
-  }
-</html:style>
-
-<commandset id="editMenuCommands"/>
-
 <commandset id="ws-commandset">
   <command id="ws-cmd-newWindow" oncommand="Workspace.openWorkspace();"/>
   <command id="ws-cmd-openFile" oncommand="Workspace.openFile();"/>
@@ -47,6 +34,12 @@
   <command id="ws-cmd-contentContext" oncommand="Workspace.setContentContext();"/>
   <command id="ws-cmd-chromeContext" oncommand="Workspace.setChromeContext();"/>
   <command id="ws-cmd-errorConsole" oncommand="Workspace.openErrorConsole();"/>
+  <command id="ws-cmd-cutSelection" oncommand="Workspace.cutSelection();"/>
+  <command id="ws-cmd-copySelection" oncommand="Workspace.copySelection();"/>
+  <command id="ws-cmd-pasteSelection" oncommand="Workspace.pasteSelection();"/>
+  <command id="ws-cmd-undo" oncommand="Workspace.undo();"/>
+  <command id="ws-cmd-redo" oncommand="Workspace.redo();"/>
+  <command id="ws-cmd-selectAll" oncommand="Workspace.selectAll();"/>
 </commandset>
 
 <keyset id="ws-keyset">
@@ -70,20 +63,30 @@
        key="&printCmd.commandkey;"
        command="ws-cmd-close"
        modifiers="accel"/>
-  <key id="key_cut"
+  <key id="ws-key-cutSelection"
        key="&cutCmd.key;"
+       command="ws-cmd-cutSelection"
        modifiers="accel"/>
-  <key id="key_copy"
+  <key id="ws-key-copySelection"
        key="&copyCmd.key;"
+       command="ws-cmd-copySelection"
        modifiers="accel"/>
-  <key id="key_paste"
+  <key id="ws-key-pasteSelection"
        key="&pasteCmd.key;"
+       command="ws-cmd-pasteSelection"
        modifiers="accel"/>
-  <key id="key_selectAll" key="&selectAllCmd.key;" modifiers="accel"/>
-  <key id="key_undo"
+  <key id="ws-key-selectAll"
+       key="&selectAllCmd.key;"
+       command="ws-cmd-selectAll"
+       modifiers="accel"/>
+  <key id="ws-key-undo"
        key="&undoCmd.key;"
+       command="ws-cmd-undo"
        modifiers="accel"/>
-  <key id="key_redo" key="&undoCmd.key;" modifiers="accel,shift"/>
+  <key id="ws-key-redo"
+       key="&undoCmd.key;"
+       command="ws-cmd-redo"
+       modifiers="accel,shift"/>
   <key id="ws-key-execute"
        key="e"
        command="ws-cmd-execute"
@@ -143,42 +146,41 @@
   <menu id="ws-edit-menu" label="&editMenu.label;"
         accesskey="&editMenu.accesskey;">
     <menupopup id="ws-menu_editpopup"
-               onpopupshowing="Workspace.updateEditUIVisibility();"
-               onpopuphidden="Workspace.updateEditUIVisibility();">
-      <menuitem id="ws-menu_undo"
+               onpopupshowing="Workspace.updateEditUIVisibility(this);">
+      <menuitem id="ws-menu-undo"
                 label="&undoCmd.label;"
-                key="key_undo"
+                key="ws-key-undo"
                 accesskey="&undoCmd.accesskey;"
                 disabled="true"
-                oncommand="cmd_undo"/>
+                command="ws-cmd-undo"/>
       <menuitem id="ws-menu-redo"
                 label="&redoCmd.label;"
-                key="key_redo"
                 disabled="true"
+                key="ws-key-redo"
                 accesskey="&redoCmd.accesskey;"
-                command="cmd_redo"/>
+                command="ws-cmd-redo"/>
       <menuseparator/>
-      <menuitem id="ws-menu-cut"
+      <menuitem id="ws-menu-cutSelection"
                 label="&cutCmd.label;"
-                key="key_cut"
+                key="ws-key-cutSelection"
                 accesskey="&cutCmd.accesskey;"
-                command="cmd_cut"/>
-      <menuitem id="ws-menu-copy"
+                command="ws-cmd-cutSelection"/>
+      <menuitem id="ws-menu-copySelection"
                 label="&copyCmd.label;"
-                key="key_copy"
+                key="ws-key-copySelection"
                 accesskey="&copyCmd.accesskey;"
-                command="cmd_copy"/>
-      <menuitem id="ws-menu-paste"
+                command="ws-cmd-copySelection"/>
+      <menuitem id="ws-menu-pasteSelection"
                 label="&pasteCmd.label;"
-                key="key_paste"
+                key="ws-key-pasteSelection"
                 accesskey="&pasteCmd.accesskey;"
-                command="cmd_paste"/>
+                command="ws-cmd-pasteSelection"/>
       <menuseparator/>
       <menuitem id="ws-menu-selectAll"
                 label="&selectAllCmd.label;"
-                key="key_selectAll"
+                key="ws-key-selectAll"
                 accesskey="&selectAllCmd.accesskey;"
-                command="cmd_selectAll"/>
+                command="ws-cmd-selectAll"/>
       <menuseparator/>
       <menuitem id="ws-menu-find"
                 label="&findOnCmd.label;"
@@ -233,13 +235,29 @@
 </menubar>
 
 <popupset id="workspace-popups">
-  <menupopup id="workspace-text-popup">
-    <menuitem id="menu_cut"/>
-    <menuitem id="menu_copy"/>
-    <menuitem id="menu_paste"/>
-    <menuitem id="menu_delete"/>
+  <menupopup id="workspace-text-popup"
+             onpopupshowing="Workspace.updateEditUIVisibility(this);">
+    <menuitem id="ws-text-cutSelection"
+              label="&cutCmd.label;"
+              key="ws-key-cutSelection"
+              accesskey="&cutCmd.accesskey;"
+              command="ws-cmd-cutSelection"/>
+    <menuitem id="ws-text-copySelection"
+              label="&copyCmd.label;"
+              key="ws-key-copySelection"
+              accesskey="&copyCmd.accesskey;"
+              command="ws-cmd-copySelection"/>
+    <menuitem id="ws-text-pasteSelection"
+              label="&pasteCmd.label;"
+              key="ws-key-pasteSelection"
+              accesskey="&pasteCmd.accesskey;"
+              command="ws-cmd-pasteSelection"/>
     <menuseparator/>
-    <menuitem id="menu_selectAll"/>
+    <menuitem id="ws-text-selectAll"
+              label="&selectAllCmd.label;"
+              key="ws-key-selectAll"
+              accesskey="&selectAllCmd.accesskey;"
+              command="ws-cmd-selectAll"/>
     <menuseparator/>
     <menuitem id="ws-text-execute" label="Execute" accesskey="e"
       key="ws-key-execute" command="ws-cmd-execute"/>
@@ -251,7 +269,7 @@
 </popupset>
 
 <box id="workspace-source-container" flex="1" context="workspace-text-popup">
-<html:pre id="workspace-source-input">
+<html:pre id="workspace-source-input" style="background:#fff;margin:0">
 // Enter some JavaScript, select it, right click and choose your weapon.
 </html:pre>
 </box>

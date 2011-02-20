@@ -10211,7 +10211,8 @@ var BackgroundTokenizer = function(tokenizer, editor) {
 
 exports.BackgroundTokenizer = BackgroundTokenizer;
 });
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -10281,6 +10282,14 @@ var UndoManager = function() {
     this.reset = function() {
         this.$undoStack = [];
         this.$redoStack = [];
+    };
+
+    this.hasUndo = function() {
+        return this.$undoStack.length > 0;
+    };
+
+    this.hasRedo = function() {
+        return this.$redoStack.length > 0;
     };
 
 }).call(UndoManager.prototype);
@@ -11640,7 +11649,8 @@ var Marker = function(parentEl) {
 exports.Marker = Marker;
 
 });
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -11754,8 +11764,12 @@ var Text = function(parentEl) {
 	        // that's why we have to measure many characters
 	        // Note: characterWidth can be a float!
 	        measureNode.innerHTML = lang.stringRepeat("Xy", n);
-          var body = document.body || document.documentElement;
-	        body.insertBefore(measureNode, body.firstChild);
+
+            var container = this.element.parentNode;
+            while (!dom.hasCssClass(container, "ace_editor"))
+                container = container.parentNode;
+
+	        container.appendChild(measureNode);
         }
 
         var style = this.$measureNode.style;
