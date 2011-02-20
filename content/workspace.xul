@@ -268,8 +268,16 @@
   </menupopup>
 </popupset>
 
+<html:style>
+  #workspace-source-input {
+    background: #fff;
+    margin:0;
+    font-size: 14px;
+  }
+</html:style>
+
 <box id="workspace-source-container" flex="1" context="workspace-text-popup">
-<html:pre id="workspace-source-input" style="background:#fff;margin:0">
+<html:pre id="workspace-source-input">
 // Enter some JavaScript, select it, right click and choose your weapon.
 </html:pre>
 </box>
