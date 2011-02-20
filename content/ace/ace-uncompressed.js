@@ -5571,7 +5571,8 @@ var Keys = (function() {
 oop.mixin(exports, Keys);
 
 });
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -5611,6 +5612,12 @@ oop.mixin(exports, Keys);
 define('pilot/dom', function(require, exports, module) {
 
 var XHTML_NS = "http://www.w3.org/1999/xhtml";
+
+exports.createElement = function(tag, ns) {
+    return document.createElementNS ?
+           document.createElementNS(ns || XHTML_NS, tag) :
+           document.createElement(tag);
+};
 
 exports.setText = function(elem, text) {
     if (elem.innerText !== undefined) {
@@ -5670,7 +5677,10 @@ exports.importCssString = function(cssText, doc){
         sheet.cssText = cssText;
     }
     else {
-        var style = doc.createElementNS(XHTML_NS, "style");
+        var style = doc.createElementNS ?
+                    doc.createElementNS(XHTML_NS, "style") :
+                    doc.createElement("style");
+
         style.appendChild(doc.createTextNode(cssText));
 
         var head = doc.getElementsByTagName("head")[0] || doc.documentElement;
@@ -5718,11 +5728,11 @@ exports.computedStyle = function(element, style) {
 
 exports.scrollbarWidth = function() {
 
-    var inner = document.createElementNS(XHTML_NS, "p");
+    var inner = exports.createElement("p");
     inner.style.width = "100%";
     inner.style.height = "200px";
 
-    var outer = document.createElementNS(XHTML_NS, "div");
+    var outer = exports.createElement("div");
     var style = outer.style;
 
     style.position = "absolute";
@@ -5815,7 +5825,8 @@ exports.setSelectionEnd = function(textarea, end) {
 };
 
 });
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -5856,11 +5867,11 @@ define('ace/keyboard/textinput', function(require, exports, module) {
 
 var event = require("pilot/event");
 var useragent = require("pilot/useragent");
-var XHTML_NS = "http://www.w3.org/1999/xhtml";
+var dom = require("pilot/dom");
 
 var TextInput = function(parentNode, host) {
 
-    var text = document.createElementNS(XHTML_NS, "textarea");
+    var text = dom.createElement("textarea");
     text.style.left = "-10000px";
     parentNode.appendChild(text);
 
@@ -10234,6 +10245,7 @@ exports.BackgroundTokenizer = BackgroundTokenizer;
  *
  * Contributor(s):
  *      Fabian Jakobs <fabian AT ajax DOT org>
+ *      Mihai Sucan <mihai DOT sucan AT gmail DOT com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -10619,8 +10631,6 @@ var RenderLoop = require("ace/renderloop").RenderLoop;
 var EventEmitter = require("pilot/event_emitter").EventEmitter;
 var editorCss = require("text!ace/css/editor.css");
 
-var XHTML_NS = "http://www.w3.org/1999/xhtml";
-
 // import CSS once
 dom.importCssString(editorCss);
 
@@ -10630,15 +10640,15 @@ var VirtualRenderer = function(container, theme) {
 
     this.setTheme(theme);
 
-    this.$gutter = document.createElementNS(XHTML_NS, "div");
+    this.$gutter = dom.createElement("div");
     this.$gutter.className = "ace_gutter";
     this.container.appendChild(this.$gutter);
 
-    this.scroller = document.createElementNS(XHTML_NS, "div");
+    this.scroller = dom.createElement("div");
     this.scroller.className = "ace_scroller";
     this.container.appendChild(this.scroller);
 
-    this.content = document.createElementNS(XHTML_NS, "div");
+    this.content = dom.createElement("div");
     this.content.className = "ace_content";
     this.scroller.appendChild(this.content);
 
@@ -10861,9 +10871,9 @@ var VirtualRenderer = function(container, theme) {
             return;
 
         if (!this.$printMarginEl) {
-            containerEl = document.createElementNS(XHTML_NS, "div");
+            containerEl = dom.createElement("div");
             containerEl.className = "ace_print_margin_layer";
-            this.$printMarginEl = document.createElementNS(XHTML_NS, "div")
+            this.$printMarginEl = dom.createElement("div")
             this.$printMarginEl.className = "ace_print_margin";
             containerEl.appendChild(this.$printMarginEl);
             this.content.insertBefore(containerEl, this.$textLayer.element);
@@ -11270,7 +11280,7 @@ var VirtualRenderer = function(container, theme) {
 
     this.showComposition = function(position) {
         if (!this.$composition) {
-            this.$composition = document.createElementNS(XHTML_NS, "div");
+            this.$composition = dom.createElement("div");
             this.$composition.className = "ace_composition";
             this.content.appendChild(this.$composition);
         }
@@ -11346,7 +11356,8 @@ var VirtualRenderer = function(container, theme) {
 
 exports.VirtualRenderer = VirtualRenderer;
 });
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -11387,10 +11398,9 @@ exports.VirtualRenderer = VirtualRenderer;
 define('ace/layer/gutter', function(require, exports, module) {
 
 var dom = require("pilot/dom");
-var XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 var Gutter = function(parentEl) {
-    this.element = document.createElementNS(XHTML_NS, "div");
+    this.element = dom.createElement("div");
     this.element.className = "ace_layer ace_gutter-layer";
     parentEl.appendChild(this.element);
 
@@ -11469,7 +11479,8 @@ var Gutter = function(parentEl) {
 exports.Gutter = Gutter;
 
 });
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -11511,10 +11522,9 @@ define('ace/layer/marker', function(require, exports, module) {
 
 var Range = require("ace/range").Range;
 var dom = require("pilot/dom");
-var XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 var Marker = function(parentEl) {
-    this.element = document.createElementNS(XHTML_NS, "div");
+    this.element = dom.createElement("div");
     this.element.className = "ace_layer ace_marker-layer";
     parentEl.appendChild(this.element);
 };
@@ -11673,6 +11683,7 @@ exports.Marker = Marker;
  * Contributor(s):
  *      Fabian Jakobs <fabian AT ajax DOT org>
  *      Julian Viereck <julian.viereck@gmail.com>
+ *      Mihai Sucan <mihai.sucan@gmail.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -11695,10 +11706,8 @@ var dom = require("pilot/dom");
 var lang = require("pilot/lang");
 var EventEmitter = require("pilot/event_emitter").EventEmitter;
 
-var XHTML_NS = "http://www.w3.org/1999/xhtml";
-
 var Text = function(parentEl) {
-    this.element = document.createElementNS(XHTML_NS, "div");
+    this.element = dom.createElement("div");
     this.element.className = "ace_layer ace_text-layer";
     parentEl.appendChild(this.element);
 
@@ -11749,7 +11758,7 @@ var Text = function(parentEl) {
     this.$measureSizes = function() {
         var n = 1000;
         if (!this.$measureNode) {
-	        var measureNode = this.$measureNode = document.createElementNS(XHTML_NS, "div");
+	        var measureNode = this.$measureNode = dom.createElement("div");
 	        var style = measureNode.style;
 
 	        style.width = style.height = "auto";
@@ -11879,7 +11888,7 @@ var Text = function(parentEl) {
         var fragment = document.createDocumentFragment();
         var tokens = this.tokenizer.getTokens(firstRow, lastRow);
         for (var row=firstRow; row<=lastRow; row++) {
-            var lineEl = document.createElementNS(XHTML_NS, "div");
+            var lineEl = dom.createElement("div");
             lineEl.className = "ace_line";
             var style = lineEl.style;
             style.height = this.session.getRowHeight(config, row) + "px";
@@ -12007,7 +12016,8 @@ var Text = function(parentEl) {
 exports.Text = Text;
 
 });
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -12048,14 +12058,13 @@ exports.Text = Text;
 define('ace/layer/cursor', function(require, exports, module) {
 
 var dom = require("pilot/dom");
-var XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 var Cursor = function(parentEl) {
-    this.element = document.createElementNS(XHTML_NS, "div");
+    this.element = dom.createElement("div");
     this.element.className = "ace_layer ace_cursor-layer";
     parentEl.appendChild(this.element);
 
-    this.cursor = document.createElementNS(XHTML_NS, "div");
+    this.cursor = dom.createElement("div");
     this.cursor.className = "ace_cursor";
 
     this.isVisible = false;
@@ -12197,13 +12206,12 @@ var oop = require("pilot/oop");
 var dom = require("pilot/dom");
 var event = require("pilot/event");
 var EventEmitter = require("pilot/event_emitter").EventEmitter;
-var XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 var ScrollBar = function(parent) {
-    this.element = document.createElementNS(XHTML_NS, "div");
+    this.element = dom.createElement("div");
     this.element.className = "ace_sb";
 
-    this.inner = document.createElementNS(XHTML_NS, "div");
+    this.inner = dom.createElement("div");
     this.element.appendChild(this.inner);
 
     parent.appendChild(this.element);
