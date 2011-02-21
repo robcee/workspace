@@ -17,8 +17,7 @@
 <!-- script type="application/javascript" src="chrome://browser/content/nsContextMenu.js"/ -->
 
 <script type="application/javascript" src="chrome://global/content/globalOverlay.js"/>
-<script type="application/javascript" src="chrome://workspace/content/ace/ace-uncompressed.js" />
-<script type="application/javascript" src="chrome://workspace/content/ace/mode-javascript-uncompressed.js" />
+<script type="application/javascript" src="chrome://workspace/content/ace/ace.js" />
 <script type="application/javascript" src="chrome://workspace/content/workspace.js"/>
 
 <commandset id="ws-commandset">
@@ -271,7 +270,7 @@
 <html:style>
   #workspace-source-input {
     background: #fff;
-    margin:0;
+    margin: 0;
     font-size: 14px;
   }
 </html:style>
