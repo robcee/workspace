@@ -50,6 +50,13 @@ var project = copy.createCommonJsProject([
 
 project.ignoreRequires = ["pilot/fixoldbrowsers"];
 
+function filterTextPlugin(text) {
+    return text.replace(/(['"])text\!/g, "$1text/");
+    /*return text
+        .replace(/define\(\s*['"]text\!\)/g, "text/")
+        .replace(/require\(\s*['"]text\!\)/g, "text/")*/
+}
+
 var ace = copy.createDataObject();
 copy({
     source: [
@@ -83,19 +90,10 @@ copy({
 copy({
     source: {
         root: project,
-        include: /.*\.css$|.*\.html$/,
+        include: /.*\.css$/,
         exclude: /tests?\//
     },
     filter: [ copy.filter.addDefines ],
-    dest: ace
-});
-copy({
-    source: {
-        root: project,
-        include: /.*\.png$|.*\.gif$/,
-        exclude: /tests?\//
-    },
-    filter: [ copy.filter.base64 ],
     dest: ace
 });
 copy({
@@ -109,11 +107,12 @@ copy({
 // Create the compressed and uncompressed output files
 copy({
     source: ace,
-    filter: copy.filter.uglifyjs,
+    filter: [copy.filter.uglifyjs, filterTextPlugin],
     dest: 'build/ace.js'
 });
 copy({
     source: ace,
+    filter: [filterTextPlugin],
     dest: 'build/ace-uncompressed.js'
 });
 

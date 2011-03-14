@@ -59,6 +59,9 @@ var _define = function(module, deps, payload) {
         return;
     }
 
+    if (arguments.length == 2)
+        payload = deps;
+
     if (!define.modules)
         define.modules = {};
         
@@ -131,8 +134,7 @@ var lookup = function(moduleName) {
     return module;
 };
 
-})();
-/* ***** BEGIN LICENSE BLOCK *****
+})();/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -169,7 +171,7 @@ var lookup = function(moduleName) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/index', ['require', 'exports', 'module' , 'pilot/fixoldbrowsers', 'pilot/types/basic', 'pilot/types/command', 'pilot/types/settings', 'pilot/commands/settings', 'pilot/commands/basic', 'pilot/settings/canon', 'pilot/canon'], function(require, exports, module) {
+define('pilot/index', function(require, exports, module) {
 
 exports.startup = function(data, reason) {
     require('pilot/fixoldbrowsers');
@@ -197,7 +199,769 @@ exports.shutdown = function(data, reason) {
 
 
 });
-/* ***** BEGIN LICENSE BLOCK *****
+// -- kriskowal Kris Kowal Copyright (C) 2009-2010 MIT License
+// -- tlrobinson Tom Robinson Copyright (C) 2009-2010 MIT License (Narwhal Project)
+// -- dantman Daniel Friesen Copyright(C) 2010 XXX No License Specified
+// -- fschaefer Florian Schäfer Copyright (C) 2010 MIT License
+
+/*!
+    Copyright (c) 2009, 280 North Inc. http://280north.com/
+    MIT License. http://github.com/280north/narwhal/blob/master/README.md
+*/
+
+define('pilot/fixoldbrowsers', function(require, exports, module) {
+
+/**
+ * Brings an environment as close to ECMAScript 5 compliance
+ * as is possible with the facilities of erstwhile engines.
+ *
+ * ES5 Draft
+ * http://www.ecma-international.org/publications/files/drafts/tc39-2009-050.pdf
+ *
+ * NOTE: this is a draft, and as such, the URL is subject to change.  If the
+ * link is broken, check in the parent directory for the latest TC39 PDF.
+ * http://www.ecma-international.org/publications/files/drafts/
+ *
+ * Previous ES5 Draft
+ * http://www.ecma-international.org/publications/files/drafts/tc39-2009-025.pdf
+ * This is a broken link to the previous draft of ES5 on which most of the
+ * numbered specification references and quotes herein were taken.  Updating
+ * these references and quotes to reflect the new document would be a welcome
+ * volunteer project.
+ * 
+ * @module
+ */
+
+/*whatsupdoc*/
+
+// this is often accessed, so avoid multiple dereference costs universally
+var has = Object.prototype.hasOwnProperty;
+
+//
+// Array
+// =====
+//
+
+// ES5 15.4.3.2 
+if (!Array.isArray) {
+    Array.isArray = function(obj) {
+        return Object.prototype.toString.call(obj) == "[object Array]";
+    };
+}
+
+// ES5 15.4.4.18
+if (!Array.prototype.forEach) {
+    Array.prototype.forEach =  function(block, thisObject) {
+        var len = +this.length;
+        for (var i = 0; i < len; i++) {
+            if (i in this) {
+                block.call(thisObject, this[i], i, this);
+            }
+        }
+    };
+}
+
+// ES5 15.4.4.19
+// https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Objects/Array/map
+if (!Array.prototype.map) {
+    Array.prototype.map = function(fun /*, thisp*/) {
+        var len = +this.length;
+        if (typeof fun != "function")
+          throw new TypeError();
+
+        var res = new Array(len);
+        var thisp = arguments[1];
+        for (var i = 0; i < len; i++) {
+            if (i in this)
+                res[i] = fun.call(thisp, this[i], i, this);
+        }
+
+        return res;
+    };
+}
+
+// ES5 15.4.4.20
+if (!Array.prototype.filter) {
+    Array.prototype.filter = function (block /*, thisp */) {
+        var values = [];
+        var thisp = arguments[1];
+        for (var i = 0; i < this.length; i++)
+            if (block.call(thisp, this[i]))
+                values.push(this[i]);
+        return values;
+    };
+}
+
+// ES5 15.4.4.16
+if (!Array.prototype.every) {
+    Array.prototype.every = function (block /*, thisp */) {
+        var thisp = arguments[1];
+        for (var i = 0; i < this.length; i++)
+            if (!block.call(thisp, this[i]))
+                return false;
+        return true;
+    };
+}
+
+// ES5 15.4.4.17
+if (!Array.prototype.some) {
+    Array.prototype.some = function (block /*, thisp */) {
+        var thisp = arguments[1];
+        for (var i = 0; i < this.length; i++)
+            if (block.call(thisp, this[i]))
+                return true;
+        return false;
+    };
+}
+
+// ES5 15.4.4.21
+// https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Objects/Array/reduce
+if (!Array.prototype.reduce) {
+    Array.prototype.reduce = function(fun /*, initial*/) {
+        var len = +this.length;
+        if (typeof fun != "function")
+            throw new TypeError();
+
+        // no value to return if no initial value and an empty array
+        if (len == 0 && arguments.length == 1)
+            throw new TypeError();
+
+        var i = 0;
+        if (arguments.length >= 2) {
+            var rv = arguments[1];
+        } else {
+            do {
+                if (i in this) {
+                    rv = this[i++];
+                    break;
+                }
+
+                // if array contains no values, no initial value to return
+                if (++i >= len)
+                    throw new TypeError();
+            } while (true);
+        }
+
+        for (; i < len; i++) {
+            if (i in this)
+                rv = fun.call(null, rv, this[i], i, this);
+        }
+
+        return rv;
+    };
+}
+
+// ES5 15.4.4.22
+// https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference/Objects/Array/reduceRight
+if (!Array.prototype.reduceRight) {
+    Array.prototype.reduceRight = function(fun /*, initial*/) {
+        var len = +this.length;
+        if (typeof fun != "function")
+            throw new TypeError();
+
+        // no value to return if no initial value, empty array
+        if (len == 0 && arguments.length == 1)
+            throw new TypeError();
+
+        var i = len - 1;
+        if (arguments.length >= 2) {
+            var rv = arguments[1];
+        } else {
+            do {
+                if (i in this) {
+                    rv = this[i--];
+                    break;
+                }
+
+                // if array contains no values, no initial value to return
+                if (--i < 0)
+                    throw new TypeError();
+            } while (true);
+        }
+
+        for (; i >= 0; i--) {
+            if (i in this)
+                rv = fun.call(null, rv, this[i], i, this);
+        }
+
+        return rv;
+    };
+}
+
+// ES5 15.4.4.14
+if (!Array.prototype.indexOf) {
+    Array.prototype.indexOf = function (value /*, fromIndex */ ) {
+        var length = this.length;
+        if (!length)
+            return -1;
+        var i = arguments[1] || 0;
+        if (i >= length)
+            return -1;
+        if (i < 0)
+            i += length;
+        for (; i < length; i++) {
+            if (!has.call(this, i))
+                continue;
+            if (value === this[i])
+                return i;
+        }
+        return -1;
+    };
+}
+
+// ES5 15.4.4.15
+if (!Array.prototype.lastIndexOf) {
+    Array.prototype.lastIndexOf = function (value /*, fromIndex */) {
+        var length = this.length;
+        if (!length)
+            return -1;
+        var i = arguments[1] || length;
+        if (i < 0)
+            i += length;
+        i = Math.min(i, length - 1);
+        for (; i >= 0; i--) {
+            if (!has.call(this, i))
+                continue;
+            if (value === this[i])
+                return i;
+        }
+        return -1;
+    };
+}
+
+//
+// Object
+// ======
+// 
+
+// ES5 15.2.3.2
+if (!Object.getPrototypeOf) {
+    // https://github.com/kriskowal/es5-shim/issues#issue/2
+    // http://ejohn.org/blog/objectgetprototypeof/
+    // recommended by fschaefer on github
+    Object.getPrototypeOf = function (object) {
+        return object.__proto__ || object.constructor.prototype;
+        // or undefined if not available in this engine
+    };
+}
+
+// ES5 15.2.3.3
+if (!Object.getOwnPropertyDescriptor) {
+    Object.getOwnPropertyDescriptor = function (object, property) {
+        if (typeof object !== "object" && typeof object !== "function" || object === null)
+            throw new TypeError("Object.getOwnPropertyDescriptor called on a non-object");
+
+        return has.call(object, property) ? {
+            value: object[property],
+            enumerable: true,
+            configurable: true,
+            writeable: true
+        } : undefined;
+    };
+}
+
+// ES5 15.2.3.4
+if (!Object.getOwnPropertyNames) {
+    Object.getOwnPropertyNames = function (object) {
+        return Object.keys(object);
+    };
+}
+
+// ES5 15.2.3.5 
+if (!Object.create) {
+    Object.create = function(prototype, properties) {
+        var object;
+        if (prototype === null) {
+            object = {"__proto__": null};
+        } else {
+            if (typeof prototype != "object")
+                throw new TypeError("typeof prototype["+(typeof prototype)+"] != 'object'");
+            var Type = function () {};
+            Type.prototype = prototype;
+            object = new Type();
+        }
+        if (typeof properties !== "undefined")
+            Object.defineProperties(object, properties);
+        return object;
+    };
+}
+
+// ES5 15.2.3.6
+if (!Object.defineProperty) {
+    Object.defineProperty = function(object, property, descriptor) {
+        if (typeof descriptor == "object" && object.__defineGetter__) {
+            if (has.call(descriptor, "value")) {
+                if (!object.__lookupGetter__(property) && !object.__lookupSetter__(property))
+                    // data property defined and no pre-existing accessors
+                    object[property] = descriptor.value;
+                if (has.call(descriptor, "get") || has.call(descriptor, "set"))
+                    // descriptor has a value property but accessor already exists
+                    throw new TypeError("Object doesn't support this action");
+            }
+            // fail silently if "writable", "enumerable", or "configurable"
+            // are requested but not supported
+            /*
+            // alternate approach:
+            if ( // can't implement these features; allow false but not true
+                !(has.call(descriptor, "writable") ? descriptor.writable : true) ||
+                !(has.call(descriptor, "enumerable") ? descriptor.enumerable : true) ||
+                !(has.call(descriptor, "configurable") ? descriptor.configurable : true)
+            )
+                throw new RangeError(
+                    "This implementation of Object.defineProperty does not " +
+                    "support configurable, enumerable, or writable."
+                );
+            */
+            else if (typeof descriptor.get == "function")
+                object.__defineGetter__(property, descriptor.get);
+            if (typeof descriptor.set == "function")
+                object.__defineSetter__(property, descriptor.set);
+        }
+        return object;
+    };
+}
+
+// ES5 15.2.3.7
+if (!Object.defineProperties) {
+    Object.defineProperties = function(object, properties) {
+        for (var property in properties) {
+            if (has.call(properties, property))
+                Object.defineProperty(object, property, properties[property]);
+        }
+        return object;
+    };
+}
+
+// ES5 15.2.3.8
+if (!Object.seal) {
+    Object.seal = function (object) {
+        // this is misleading and breaks feature-detection, but
+        // allows "securable" code to "gracefully" degrade to working
+        // but insecure code.
+        return object;
+    };
+}
+
+// ES5 15.2.3.9
+if (!Object.freeze) {
+    Object.freeze = function (object) {
+        // this is misleading and breaks feature-detection, but
+        // allows "securable" code to "gracefully" degrade to working
+        // but insecure code.
+        return object;
+    };
+}
+
+// detect a Rhino bug and patch it
+try {
+    Object.freeze(function () {});
+} catch (exception) {
+    Object.freeze = (function (freeze) {
+        return function (object) {
+            if (typeof object == "function") {
+                return object;
+            } else {
+                return freeze(object);
+            }
+        };
+    })(Object.freeze);
+}
+
+// ES5 15.2.3.10
+if (!Object.preventExtensions) {
+    Object.preventExtensions = function (object) {
+        // this is misleading and breaks feature-detection, but
+        // allows "securable" code to "gracefully" degrade to working
+        // but insecure code.
+        return object;
+    };
+}
+
+// ES5 15.2.3.11
+if (!Object.isSealed) {
+    Object.isSealed = function (object) {
+        return false;
+    };
+}
+
+// ES5 15.2.3.12
+if (!Object.isFrozen) {
+    Object.isFrozen = function (object) {
+        return false;
+    };
+}
+
+// ES5 15.2.3.13
+if (!Object.isExtensible) {
+    Object.isExtensible = function (object) {
+        return true;
+    };
+}
+
+// ES5 15.2.3.14
+// http://whattheheadsaid.com/2010/10/a-safer-object-keys-compatibility-implementation
+if (!Object.keys) {
+
+    var hasDontEnumBug = true,
+        dontEnums = [
+            'toString',
+            'toLocaleString',
+            'valueOf',
+            'hasOwnProperty',
+            'isPrototypeOf',
+            'propertyIsEnumerable',
+            'constructor'
+        ],
+        dontEnumsLength = dontEnums.length;
+
+    for (var key in {"toString": null})
+        hasDontEnumBug = false;
+
+    Object.keys = function (object) {
+
+        if (
+            typeof object !== "object" && typeof object !== "function"
+            || object === null
+        )
+            throw new TypeError("Object.keys called on a non-object");
+
+        var keys = [];
+        for (var name in object) {
+            if (has.call(object, name)) {
+                keys.push(name);
+            }
+        }
+
+        if (hasDontEnumBug) {
+            for (var i = 0, ii = dontEnumsLength; i < ii; i++) {
+                var dontEnum = dontEnums[i];
+                if (has.call(object, dontEnum)) {
+                    keys.push(dontEnum);
+                }
+            }
+        }
+
+        return keys;
+    };
+
+}
+
+//
+// Date
+// ====
+//
+
+// ES5 15.9.5.43
+// Format a Date object as a string according to a subset of the ISO-8601 standard.
+// Useful in Atom, among other things.
+if (!Date.prototype.toISOString) {
+    Date.prototype.toISOString = function() {
+        return (
+            this.getUTCFullYear() + "-" +
+            (this.getUTCMonth() + 1) + "-" +
+            this.getUTCDate() + "T" +
+            this.getUTCHours() + ":" +
+            this.getUTCMinutes() + ":" +
+            this.getUTCSeconds() + "Z"
+        ); 
+    }
+}
+
+// ES5 15.9.4.4
+if (!Date.now) {
+    Date.now = function () {
+        return new Date().getTime();
+    };
+}
+
+// ES5 15.9.5.44
+if (!Date.prototype.toJSON) {
+    Date.prototype.toJSON = function (key) {
+        // This function provides a String representation of a Date object for
+        // use by JSON.stringify (15.12.3). When the toJSON method is called
+        // with argument key, the following steps are taken:
+
+        // 1.  Let O be the result of calling ToObject, giving it the this
+        // value as its argument.
+        // 2. Let tv be ToPrimitive(O, hint Number).
+        // 3. If tv is a Number and is not finite, return null.
+        // XXX
+        // 4. Let toISO be the result of calling the [[Get]] internal method of
+        // O with argument "toISOString".
+        // 5. If IsCallable(toISO) is false, throw a TypeError exception.
+        if (typeof this.toISOString != "function")
+            throw new TypeError();
+        // 6. Return the result of calling the [[Call]] internal method of
+        // toISO with O as the this value and an empty argument list.
+        return this.toISOString();
+
+        // NOTE 1 The argument is ignored.
+
+        // NOTE 2 The toJSON function is intentionally generic; it does not
+        // require that its this value be a Date object. Therefore, it can be
+        // transferred to other kinds of objects for use as a method. However,
+        // it does require that any such object have a toISOString method. An
+        // object is free to use the argument key to filter its
+        // stringification.
+    };
+}
+
+// 15.9.4.2 Date.parse (string)
+// 15.9.1.15 Date Time String Format
+// Date.parse
+// based on work shared by Daniel Friesen (dantman)
+// http://gist.github.com/303249
+if (isNaN(Date.parse("T00:00"))) {
+    // XXX global assignment won't work in embeddings that use
+    // an alternate object for the context.
+    Date = (function(NativeDate) {
+
+        // Date.length === 7
+        var Date = function(Y, M, D, h, m, s, ms) {
+            var length = arguments.length;
+            if (this instanceof NativeDate) {
+                var date = length === 1 && String(Y) === Y ? // isString(Y)
+                    // We explicitly pass it through parse:
+                    new NativeDate(Date.parse(Y)) :
+                    // We have to manually make calls depending on argument
+                    // length here
+                    length >= 7 ? new NativeDate(Y, M, D, h, m, s, ms) :
+                    length >= 6 ? new NativeDate(Y, M, D, h, m, s) :
+                    length >= 5 ? new NativeDate(Y, M, D, h, m) :
+                    length >= 4 ? new NativeDate(Y, M, D, h) :
+                    length >= 3 ? new NativeDate(Y, M, D) :
+                    length >= 2 ? new NativeDate(Y, M) :
+                    length >= 1 ? new NativeDate(Y) :
+                                  new NativeDate();
+                // Prevent mixups with unfixed Date object
+                date.constructor = Date;
+                return date;
+            }
+            return NativeDate.apply(this, arguments);
+        };
+
+        // 15.9.1.15 Date Time String Format
+        var isoDateExpression = new RegExp("^" +
+            "(?:" + // optional year-month-day
+                "(" + // year capture
+                    "(?:[+-]\\d\\d)?" + // 15.9.1.15.1 Extended years
+                    "\\d\\d\\d\\d" + // four-digit year
+                ")" +
+                "(?:-" + // optional month-day
+                    "(\\d\\d)" + // month capture
+                    "(?:-" + // optional day
+                        "(\\d\\d)" + // day capture
+                    ")?" +
+                ")?" +
+            ")?" + 
+            "(?:T" + // hour:minute:second.subsecond
+                "(\\d\\d)" + // hour capture
+                ":(\\d\\d)" + // minute capture
+                "(?::" + // optional :second.subsecond
+                    "(\\d\\d)" + // second capture
+                    "(?:\\.(\\d\\d\\d))?" + // milisecond capture
+                ")?" +
+            ")?" +
+            "(?:" + // time zone
+                "Z|" + // UTC capture
+                "([+-])(\\d\\d):(\\d\\d)" + // timezone offset
+                // capture sign, hour, minute
+            ")?" +
+        "$");
+
+        // Copy any custom methods a 3rd party library may have added
+        for (var key in NativeDate)
+            Date[key] = NativeDate[key];
+
+        // Copy "native" methods explicitly; they may be non-enumerable
+        Date.now = NativeDate.now;
+        Date.UTC = NativeDate.UTC;
+        Date.prototype = NativeDate.prototype;
+        Date.prototype.constructor = Date;
+
+        // Upgrade Date.parse to handle the ISO dates we use
+        // TODO review specification to ascertain whether it is
+        // necessary to implement partial ISO date strings.
+        Date.parse = function(string) {
+            var match = isoDateExpression.exec(string);
+            if (match) {
+                match.shift(); // kill match[0], the full match
+                // recognize times without dates before normalizing the
+                // numeric values, for later use
+                var timeOnly = match[0] === undefined;
+                // parse numerics
+                for (var i = 0; i < 10; i++) {
+                    // skip + or - for the timezone offset
+                    if (i === 7)
+                        continue;
+                    // Note: parseInt would read 0-prefix numbers as
+                    // octal.  Number constructor or unary + work better
+                    // here:
+                    match[i] = +(match[i] || (i < 3 ? 1 : 0));
+                    // match[1] is the month. Months are 0-11 in JavaScript
+                    // Date objects, but 1-12 in ISO notation, so we
+                    // decrement.
+                    if (i === 1)
+                        match[i]--;
+                }
+                // if no year-month-date is provided, return a milisecond
+                // quantity instead of a UTC date number value.
+                if (timeOnly)
+                    return ((match[3] * 60 + match[4]) * 60 + match[5]) * 1000 + match[6];
+
+                // account for an explicit time zone offset if provided
+                var offset = (match[8] * 60 + match[9]) * 60 * 1000;
+                if (match[6] === "-")
+                    offset = -offset;
+
+                return NativeDate.UTC.apply(this, match.slice(0, 7)) + offset;
+            }
+            return NativeDate.parse.apply(this, arguments);
+        };
+
+        return Date;
+    })(Date);
+}
+
+// 
+// Function
+// ========
+// 
+
+// ES-5 15.3.4.5
+// http://www.ecma-international.org/publications/files/drafts/tc39-2009-025.pdf
+var slice = Array.prototype.slice;
+if (!Function.prototype.bind) {
+    Function.prototype.bind = function (that) { // .length is 1
+        // 1. Let Target be the this value.
+        var target = this;
+        // 2. If IsCallable(Target) is false, throw a TypeError exception.
+        // XXX this gets pretty close, for all intents and purposes, letting 
+        // some duck-types slide
+        if (typeof target.apply != "function" || typeof target.call != "function")
+            return new TypeError();
+        // 3. Let A be a new (possibly empty) internal list of all of the
+        //   argument values provided after thisArg (arg1, arg2 etc), in order.
+        var args = slice.call(arguments);
+        // 4. Let F be a new native ECMAScript object.
+        // 9. Set the [[Prototype]] internal property of F to the standard
+        //   built-in Function prototype object as specified in 15.3.3.1.
+        // 10. Set the [[Call]] internal property of F as described in
+        //   15.3.4.5.1.
+        // 11. Set the [[Construct]] internal property of F as described in
+        //   15.3.4.5.2.
+        // 12. Set the [[HasInstance]] internal property of F as described in
+        //   15.3.4.5.3.
+        // 13. The [[Scope]] internal property of F is unused and need not
+        //   exist.
+        var bound = function () {
+
+            if (this instanceof bound) {
+                // 15.3.4.5.2 [[Construct]]
+                // When the [[Construct]] internal method of a function object,
+                // F that was created using the bind function is called with a
+                // list of arguments ExtraArgs the following steps are taken:
+                // 1. Let target be the value of F's [[TargetFunction]]
+                //   internal property.
+                // 2. If target has no [[Construct]] internal method, a
+                //   TypeError exception is thrown.
+                // 3. Let boundArgs be the value of F's [[BoundArgs]] internal
+                //   property.
+                // 4. Let args be a new list containing the same values as the
+                //   list boundArgs in the same order followed by the same
+                //   values as the list ExtraArgs in the same order.
+
+                var self = Object.create(target.prototype);
+                target.apply(self, args.concat(slice.call(arguments)));
+                return self;
+
+            } else {
+                // 15.3.4.5.1 [[Call]]
+                // When the [[Call]] internal method of a function object, F,
+                // which was created using the bind function is called with a
+                // this value and a list of arguments ExtraArgs the following
+                // steps are taken:
+                // 1. Let boundArgs be the value of F's [[BoundArgs]] internal
+                //   property.
+                // 2. Let boundThis be the value of F's [[BoundThis]] internal
+                //   property.
+                // 3. Let target be the value of F's [[TargetFunction]] internal
+                //   property.
+                // 4. Let args be a new list containing the same values as the list
+                //   boundArgs in the same order followed by the same values as
+                //   the list ExtraArgs in the same order. 5.  Return the
+                //   result of calling the [[Call]] internal method of target
+                //   providing boundThis as the this value and providing args
+                //   as the arguments.
+
+                // equiv: target.call(this, ...boundArgs, ...args)
+                return target.call.apply(
+                    target,
+                    args.concat(slice.call(arguments))
+                );
+
+            }
+
+        };
+        // 5. Set the [[TargetFunction]] internal property of F to Target.
+        // extra:
+        bound.bound = target;
+        // 6. Set the [[BoundThis]] internal property of F to the value of
+        // thisArg.
+        // extra:
+        bound.boundTo = that;
+        // 7. Set the [[BoundArgs]] internal property of F to A.
+        // extra:
+        bound.boundArgs = args;
+        bound.length = (
+            // 14. If the [[Class]] internal property of Target is "Function", then
+            typeof target == "function" ?
+            // a. Let L be the length property of Target minus the length of A.
+            // b. Set the length own property of F to either 0 or L, whichever is larger.
+            Math.max(target.length - args.length, 0) :
+            // 15. Else set the length own property of F to 0.
+            0
+        )
+        // 16. The length own property of F is given attributes as specified in
+        //   15.3.5.1.
+        // TODO
+        // 17. Set the [[Extensible]] internal property of F to true.
+        // TODO
+        // 18. Call the [[DefineOwnProperty]] internal method of F with
+        //   arguments "caller", PropertyDescriptor {[[Value]]: null,
+        //   [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]:
+        //   false}, and false.
+        // TODO
+        // 19. Call the [[DefineOwnProperty]] internal method of F with
+        //   arguments "arguments", PropertyDescriptor {[[Value]]: null,
+        //   [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]:
+        //   false}, and false.
+        // TODO
+        // NOTE Function objects created using Function.prototype.bind do not
+        // have a prototype property.
+        // XXX can't delete it in pure-js.
+        return bound;
+    };
+}
+
+//
+// String
+// ======
+//
+
+// ES5 15.5.4.20
+if (!String.prototype.trim) {
+    // http://blog.stevenlevithan.com/archives/faster-trim-javascript
+    var trimBeginRegexp = /^\s\s*/;
+    var trimEndRegexp = /\s\s*$/;
+    String.prototype.trim = function () {
+        return String(this).replace(trimBeginRegexp, '').replace(trimEndRegexp, '');
+    };
+}
+
+exports.globalsLoaded = true;
+
+});/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -235,7 +999,7 @@ exports.shutdown = function(data, reason) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/types/basic', ['require', 'exports', 'module' , 'pilot/types'], function(require, exports, module) {
+define('pilot/types/basic', function(require, exports, module) {
 
 var types = require("pilot/types");
 var Type = types.Type;
@@ -503,7 +1267,12 @@ ArrayType.prototype.name = 'array';
 /**
  * Registration and de-registration.
  */
+var isStarted = false;
 exports.startup = function() {
+    if (isStarted) {
+        return;
+    }
+    isStarted = true;
     types.registerType(text);
     types.registerType(number);
     types.registerType(bool);
@@ -513,6 +1282,7 @@ exports.startup = function() {
 };
 
 exports.shutdown = function() {
+    isStarted = false;
     types.unregisterType(text);
     types.unregisterType(number);
     types.unregisterType(bool);
@@ -560,7 +1330,7 @@ exports.shutdown = function() {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/types', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/types', function(require, exports, module) {
 
 /**
  * Some types can detect validity, that is to say they can distinguish between
@@ -605,9 +1375,9 @@ var Status = {
      */
     combine: function(statuses) {
         var combined = Status.VALID;
-        for (var i = 0; i < arguments; i++) {
-            if (arguments[i] > combined) {
-                combined = arguments[i];
+        for (var i = 0; i < statuses.length; i++) {
+            if (statuses[i].valueOf() > combined.valueOf()) {
+                combined = statuses[i];
             }
         }
         return combined;
@@ -843,7 +1613,7 @@ exports.getType = function(typeSpec) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/types/command', ['require', 'exports', 'module' , 'pilot/canon', 'pilot/types/basic', 'pilot/types'], function(require, exports, module) {
+define('pilot/types/command', function(require, exports, module) {
 
 var canon = require("pilot/canon");
 var SelectionType = require("pilot/types/basic").SelectionType;
@@ -917,12 +1687,15 @@ exports.shutdown = function() {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/canon', ['require', 'exports', 'module' , 'pilot/console', 'pilot/stacktrace', 'pilot/oop', 'pilot/event_emitter', 'pilot/catalog', 'pilot/types', 'pilot/lang'], function(require, exports, module) {
+define('pilot/canon', function(require, exports, module) {
 
 var console = require('pilot/console');
 var Trace = require('pilot/stacktrace').Trace;
 var oop = require('pilot/oop');
+var useragent = require('pilot/useragent');
+var keyUtil = require('pilot/keys');
 var EventEmitter = require('pilot/event_emitter').EventEmitter;
+var typecheck = require('pilot/typecheck');
 var catalog = require('pilot/catalog');
 var Status = require('pilot/types').Status;
 var types = require('pilot/types');
@@ -990,6 +1763,123 @@ var thingCommand = {
 var commands = {};
 
 /**
+ * A lookup has for command key bindings that use a string as sender.
+ */
+var commmandKeyBinding = {};
+
+/**
+ * Array with command key bindings that use a function to determ the sender.
+ */
+var commandKeyBindingFunc = { };
+
+function splitSafe(s, separator, limit, bLowerCase) {
+    return (bLowerCase && s.toLowerCase() || s)
+        .replace(/(?:^\s+|\n|\s+$)/g, "")
+        .split(new RegExp("[\\s ]*" + separator + "[\\s ]*", "g"), limit || 999);
+}
+
+function parseKeys(keys, val, ret) {
+    var key,
+        hashId = 0,
+        parts  = splitSafe(keys, "\\-", null, true),
+        i      = 0,
+        l      = parts.length;
+
+    for (; i < l; ++i) {
+        if (keyUtil.KEY_MODS[parts[i]])
+            hashId = hashId | keyUtil.KEY_MODS[parts[i]];
+        else
+            key = parts[i] || "-"; //when empty, the splitSafe removed a '-'
+    }
+
+    if (ret == null) {
+        return {
+            key: key,
+            hashId: hashId
+        }   
+    } else {
+        (ret[hashId] || (ret[hashId] = {}))[key] = val;
+    }
+}
+
+var platform = useragent.isMac ? "mac" : "win";
+function buildKeyHash(command) {
+    var binding = command.bindKey,
+        key = binding[platform],
+        ckb = commmandKeyBinding,
+        ckbf = commandKeyBindingFunc
+
+    if (!binding.sender) {
+        throw new Error('All key bindings must have a sender');   
+    }
+    if (!binding.mac && binding.mac !== null) {
+        throw new Error('All key bindings must have a mac key binding');
+    }
+    if (!binding.win && binding.win !== null) {
+        throw new Error('All key bindings must have a windows key binding');
+    }
+    if(!binding[platform]) {
+        // No keymapping for this platform.
+        return;   
+    }
+    if (typeof binding.sender == 'string') {
+        var targets = splitSafe(binding.sender, "\\|", null, true);
+        targets.forEach(function(target) {
+            if (!ckb[target]) {
+                ckb[target] = { };
+            }
+            key.split("|").forEach(function(keyPart) {
+                parseKeys(keyPart, command, ckb[target]);        
+            });
+        });
+    } else if (typecheck.isFunction(binding.sender)) {
+        var val = {
+            command: command,
+            sender:  binding.sender
+        };
+        
+        keyData = parseKeys(key);
+        if (!ckbf[keyData.hashId]) {
+            ckbf[keyData.hashId] = { };
+        }
+        if (!ckbf[keyData.hashId][keyData.key]) {
+            ckbf[keyData.hashId][keyData.key] = [ val ];   
+        } else {
+            ckbf[keyData.hashId][keyData.key].push(val);
+        }
+    } else {
+        throw new Error('Key binding must have a sender that is a string or function');   
+    }
+}
+
+function findKeyCommand(env, sender, hashId, textOrKey) {
+    // Convert keyCode to the string representation.
+    if (typecheck.isNumber(textOrKey)) {
+        textOrKey = keyUtil.keyCodeToString(textOrKey);
+    }
+    
+    // Check bindings with functions as sender first.    
+    var bindFuncs = (commandKeyBindingFunc[hashId]  || {})[textOrKey] || [];
+    for (var i = 0; i < bindFuncs.length; i++) {
+        if (bindFuncs[i].sender(env, sender, hashId, textOrKey)) {
+            return bindFuncs[i].command;
+        }
+    }
+    
+    var ckbr = commmandKeyBinding[sender]
+    return ckbr && ckbr[hashId] && ckbr[hashId][textOrKey];
+}
+
+function execKeyCommand(env, sender, hashId, textOrKey) {
+    var command = findKeyCommand(env, sender, hashId, textOrKey);
+    if (command) {
+        return exec(command, env, sender, { });   
+    } else {
+        return false;
+    }
+}
+
+/**
  * A sorted list of command names, we regularly want them in order, so pre-sort
  */
 var commandNames = [];
@@ -1019,6 +1909,10 @@ function addCommand(command) {
     }, this);
     commands[command.name] = command;
 
+    if (command.bindKey) {
+        buildKeyHash(command);   
+    }
+
     commandNames.push(command.name);
     commandNames.sort();
 };
@@ -1047,11 +1941,55 @@ function getCommandNames() {
 };
 
 /**
- * Entry point for keyboard accelerators or anything else that knows
- * everything it needs to about the command params
- * @param command Either a command, or the name of one
+ * Default ArgumentProvider that is used if no ArgumentProvider is provided
+ * by the command's sender.
  */
-function exec(command, env, args, typed) {
+function defaultArgsProvider(request, callback) {
+    var args  = request.args,
+        params = request.command.params;
+
+    for (var i = 0; i < params.length; i++) {
+        var param = params[i];
+
+        // If the parameter is already valid, then don't ask for it anymore.
+        if (request.getParamStatus(param) != Status.VALID ||
+            // Ask for optional parameters as well.
+            param.defaultValue === null) 
+        {
+            var paramPrompt = param.description;
+            if (param.defaultValue === null) {
+                paramPrompt += " (optional)";
+            }
+            var value = prompt(paramPrompt, param.defaultValue || "");
+            // No value but required -> nope.
+            if (!value) {
+                callback();
+                return;
+            } else {
+                args[param.name] = value;
+            }           
+        }
+    }
+    callback();
+}
+
+/**
+ * Entry point for keyboard accelerators or anything else that wants to execute
+ * a command. A new request object is created and a check performed, if the
+ * passed in arguments are VALID/INVALID or INCOMPLETE. If they are INCOMPLETE
+ * the ArgumentProvider on the sender is called or otherwise the default 
+ * ArgumentProvider to get the still required arguments.
+ * If they are valid (or valid after the ArgumentProvider is done), the command
+ * is executed.
+ * 
+ * @param command   Either a command, or the name of one
+ * @param env       Current environment to execute the command in
+ * @param sender    String that should be the same as the senderObject stored on 
+ *                  the environment in env[sender]
+ * @param args      Arguments for the command
+ * @param typed     (Optional)
+ */
+function exec(command, env, sender, args, typed) {
     if (typeof command === 'string') {
         command = commands[command];
     }
@@ -1061,19 +1999,63 @@ function exec(command, env, args, typed) {
     }
 
     var request = new Request({
+        sender: sender,
         command: command,
-        args: args,
+        args: args || {},
         typed: typed
     });
-    command.exec(env, args || {}, request);
-    return true;
+    
+    /**
+     * Executes the command and ensures request.done is called on the request in 
+     * case it's not marked to be done already or async.
+     */
+    function execute() {
+        command.exec(env, request.args, request);
+        
+        // If the request isn't asnync and isn't done, then make it done.
+        if (!request.isAsync && !request.isDone) {
+            request.done();
+        }
+    }
+    
+    
+    if (request.getStatus() == Status.INVALID) {
+        console.error("Canon.exec: Invalid parameter(s) passed to " + 
+                            command.name);
+        return false;   
+    } 
+    // If the request isn't complete yet, try to complete it.
+    else if (request.getStatus() == Status.INCOMPLETE) {
+        // Check if the sender has a ArgsProvider, otherwise use the default
+        // build in one.
+        var argsProvider;
+        var senderObj = env[sender];
+        if (!senderObj || !senderObj.getArgsProvider ||
+            !(argsProvider = senderObj.getArgsProvider())) 
+        {
+            argsProvider = defaultArgsProvider;
+        }
+
+        // Ask the paramProvider to complete the request.
+        argsProvider(request, function() {
+            if (request.getStatus() == Status.VALID) {
+                execute();
+            }
+        });
+        return true;
+    } else {
+        execute();
+        return true;
+    }
 };
 
 exports.removeCommand = removeCommand;
 exports.addCommand = addCommand;
 exports.getCommand = getCommand;
 exports.getCommandNames = getCommandNames;
+exports.findKeyCommand = findKeyCommand;
 exports.exec = exec;
+exports.execKeyCommand = execKeyCommand;
 exports.upgradeType = upgradeType;
 
 
@@ -1144,6 +2126,87 @@ function Request(options) {
 oop.implement(Request.prototype, EventEmitter);
 
 /**
+ * Return the status of a parameter on the request object.
+ */
+Request.prototype.getParamStatus = function(param) {
+    var args = this.args || {};
+    
+    // Check if there is already a value for this parameter.
+    if (param.name in args) {
+        // If there is no value set and then the value is VALID if it's not
+        // required or INCOMPLETE if not set yet.
+        if (args[param.name] == null) {
+            if (param.defaultValue === null) {
+                return Status.VALID;
+            } else {
+                return Status.INCOMPLETE;   
+            } 
+        }
+        
+        // Check if the parameter value is valid.
+        var reply,
+            // The passed in value when parsing a type is a string.
+            argsValue = args[param.name].toString();
+        
+        // Type.parse can throw errors. 
+        try {
+            reply = param.type.parse(argsValue);
+        } catch (e) {
+            return Status.INVALID;   
+        }
+        
+        if (reply.status != Status.VALID) {
+            return reply.status;   
+        }
+    } 
+    // Check if the param is marked as required.
+    else if (param.defaultValue === undefined) {
+        // The parameter is not set on the args object but it's required,
+        // which means, things are invalid.
+        return Status.INCOMPLETE;
+    }
+    
+    return Status.VALID;
+}
+
+/**
+ * Return the status of a parameter name on the request object.
+ */
+Request.prototype.getParamNameStatus = function(paramName) {
+    var params = this.command.params || [];
+    
+    for (var i = 0; i < params.length; i++) {
+        if (params[i].name == paramName) {
+            return this.getParamStatus(params[i]);   
+        }
+    }
+    
+    throw "Parameter '" + paramName + 
+                "' not defined on command '" + this.command.name + "'"; 
+}
+
+/**
+ * Checks if all required arguments are set on the request such that it can
+ * get executed.
+ */
+Request.prototype.getStatus = function() {
+    var args = this.args || {},
+        params = this.command.params;
+
+    // If there are not parameters, then it's valid.
+    if (!params || params.length == 0) {
+        return Status.VALID;
+    }
+
+    var status = [];
+    for (var i = 0; i < params.length; i++) {
+        status.push(this.getParamStatus(params[i]));        
+    }
+
+    return Status.combine(status);
+}
+
+/**
  * Lazy init to register with the history should only be done on output.
  * init() is expensive, and won't be used in the majority of cases
  */
@@ -1175,6 +2238,7 @@ Request.prototype.doneWithError = function(content) {
  * the command exits
  */
 Request.prototype.async = function() {
+    this.isAsync = true;
     if (!this._begunOutput) {
         this._beginOutput();
     }
@@ -1195,6 +2259,7 @@ Request.prototype.output = function(content) {
     }
 
     this.outputs.push(content);
+    this.isDone = true;
     this._dispatchEvent('output', {});
 
     return this;
@@ -1212,8 +2277,12 @@ Request.prototype.done = function(content) {
     if (content) {
         this.output(content);
     }
-
-    this._dispatchEvent('output', {});
+    
+    // Ensure to finish the request only once.
+    if (!this.isDone) {
+        this.isDone = true;
+        this._dispatchEvent('output', {});   
+    }
 };
 exports.Request = Request;
 
@@ -1257,7 +2326,7 @@ exports.Request = Request;
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-define('pilot/console', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/console', function(require, exports, module) {
     
 /**
  * This object represents a "safe console" object that forwards debugging
@@ -1295,7 +2364,7 @@ if (typeof(window) === 'undefined') {
 }
 
 });
-define('pilot/stacktrace', ['require', 'exports', 'module' , 'pilot/useragent', 'pilot/console'], function(require, exports, module) {
+define('pilot/stacktrace', function(require, exports, module) {
     
 var ua = require("pilot/useragent");
 var console = require('pilot/console');
@@ -1664,7 +2733,7 @@ exports.Trace.prototype.log = function(lines) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/useragent', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/useragent', function(require, exports, module) {
 
 var os = (navigator.platform.match(/mac|win|linux/i) || ["other"])[0].toLowerCase();
 var ua = navigator.userAgent;
@@ -1761,7 +2830,7 @@ exports.getOS = function() {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/oop', function(require, exports, module) {
 
 exports.inherits = (function() {
     var tempCtor = function() {};
@@ -1782,6 +2851,124 @@ exports.mixin = function(obj, mixin) {
 exports.implement = function(proto, mixin) {
     exports.mixin(proto, mixin);
 };
+
+});
+/*! @license
+==========================================================================
+SproutCore -- JavaScript Application Framework
+copyright 2006-2009, Sprout Systems Inc., Apple Inc. and contributors.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+SproutCore and the SproutCore logo are trademarks of Sprout Systems, Inc.
+
+For more information about SproutCore, visit http://www.sproutcore.com
+
+
+==========================================================================
+@license */
+
+// Most of the following code is taken from SproutCore with a few changes.
+
+define('pilot/keys', function(require, exports, module) {
+
+var oop = require("pilot/oop");
+
+/**
+ * Helper functions and hashes for key handling.
+ */
+var Keys = (function() {
+    var ret = {
+        MODIFIER_KEYS: {
+            16: 'Shift', 17: 'Ctrl', 18: 'Alt', 224: 'Meta'
+        },
+
+        KEY_MODS: {
+            "ctrl": 1, "alt": 2, "option" : 2,
+            "shift": 4, "meta": 8, "command": 8
+        },
+
+        FUNCTION_KEYS : {
+            8  : "Backspace",
+            9  : "Tab",
+            13 : "Return",
+            19 : "Pause",
+            27 : "Esc",
+            32 : "Space",
+            33 : "PageUp",
+            34 : "PageDown",
+            35 : "End",
+            36 : "Home",
+            37 : "Left",
+            38 : "Up",
+            39 : "Right",
+            40 : "Down",
+            44 : "Print",
+            45 : "Insert",
+            46 : "Delete",
+            112: "F1",
+            113: "F2",
+            114: "F3",
+            115: "F4",
+            116: "F5",
+            117: "F6",
+            118: "F7",
+            119: "F8",
+            120: "F9",
+            121: "F10",
+            122: "F11",
+            123: "F12",
+            144: "Numlock",
+            145: "Scrolllock"
+        },
+
+        PRINTABLE_KEYS: {
+           32: ' ',  48: '0',  49: '1',  50: '2',  51: '3',  52: '4', 53:  '5',
+           54: '6',  55: '7',  56: '8',  57: '9',  59: ';',  61: '=', 65:  'a',
+           66: 'b',  67: 'c',  68: 'd',  69: 'e',  70: 'f',  71: 'g', 72:  'h',
+           73: 'i',  74: 'j',  75: 'k',  76: 'l',  77: 'm',  78: 'n', 79:  'o',
+           80: 'p',  81: 'q',  82: 'r',  83: 's',  84: 't',  85: 'u', 86:  'v',
+           87: 'w',  88: 'x',  89: 'y',  90: 'z', 107: '+', 109: '-', 110: '.',
+          188: ',', 190: '.', 191: '/', 192: '`', 219: '[', 220: '\\',
+          221: ']', 222: '\"'
+        }
+    };
+
+    // A reverse map of FUNCTION_KEYS
+    for (i in ret.FUNCTION_KEYS) {
+        var name = ret.FUNCTION_KEYS[i].toUpperCase();
+        ret[name] = parseInt(i, 10);
+    }
+
+    // Add the MODIFIER_KEYS, FUNCTION_KEYS and PRINTABLE_KEYS to the KEY
+    // variables as well.
+    oop.mixin(ret, ret.MODIFIER_KEYS);
+    oop.mixin(ret, ret.PRINTABLE_KEYS);
+    oop.mixin(ret, ret.FUNCTION_KEYS);
+
+    return ret;
+})();
+oop.mixin(exports, Keys);
+
+exports.keyCodeToString = function(keyCode) {
+    return (Keys[keyCode] || String.fromCharCode(keyCode)).toLowerCase();
+}
 
 });
 /* vim:ts=4:sts=4:sw=4:
@@ -1823,7 +3010,7 @@ exports.implement = function(proto, mixin) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/event_emitter', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/event_emitter', function(require, exports, module) {
 
 var EventEmitter = {};
 
@@ -1889,6 +3076,85 @@ exports.EventEmitter = EventEmitter;
  * for the specific language governing rights and limitations under the
  * License.
  *
+ * The Original Code is Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Joe Walker (jwalker@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/typecheck', function(require, exports, module) {
+
+var objectToString = Object.prototype.toString;
+
+/**
+ * Return true if it is a String
+ */
+exports.isString = function(it) {
+    return it && objectToString.call(it) === "[object String]";
+};
+
+/**
+ * Returns true if it is a Boolean.
+ */
+exports.isBoolean = function(it) {
+    return it && objectToString.call(it) === "[object Boolean]";
+};
+
+/**
+ * Returns true if it is a Number.
+ */
+exports.isNumber = function(it) {
+    return it && objectToString.call(it) === "[object Number]" && isFinite(it);
+};
+
+/**
+ * Hack copied from dojo.
+ */
+exports.isObject = function(it) {
+    return it !== undefined &&
+        (it === null || typeof it == "object" ||
+        Array.isArray(it) || exports.isFunction(it));
+};
+
+/**
+ * Is the passed object a function?
+ * From dojo.isFunction()
+ */
+exports.isFunction = function(it) {
+    return it && objectToString.call(it) === "[object Function]";
+};
+
+});/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
  * The Original Code is Mozilla Skywriter.
  *
  * The Initial Developer of the Original Code is
@@ -1913,7 +3179,7 @@ exports.EventEmitter = EventEmitter;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/catalog', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/catalog', function(require, exports, module) {
 
 
 var extensionSpecs = {};
@@ -1978,7 +3244,7 @@ exports.getExtensionSpecs = function() {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/lang', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/lang', function(require, exports, module) {
 
 exports.stringReverse = function(string) {
     return string.split("").reverse().join("");
@@ -2091,7 +3357,7 @@ exports.deferredCall = function(fcn) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/types/settings', ['require', 'exports', 'module' , 'pilot/types/basic', 'pilot/types', 'pilot/settings'], function(require, exports, module) {
+define('pilot/types/settings', function(require, exports, module) {
 
 var SelectionType = require('pilot/types/basic').SelectionType;
 var DeferredType = require('pilot/types/basic').DeferredType;
@@ -2233,7 +3499,7 @@ exports.shutdown = function(data, reason) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/settings', ['require', 'exports', 'module' , 'pilot/console', 'pilot/oop', 'pilot/types', 'pilot/event_emitter', 'pilot/catalog'], function(require, exports, module) {
+define('pilot/settings', function(require, exports, module) {
 
 /**
  * This plug-in manages settings.
@@ -2556,7 +3822,7 @@ exports.CookiePersister = CookiePersister;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/commands/settings', ['require', 'exports', 'module' , 'pilot/canon'], function(require, exports, module) {
+define('pilot/commands/settings', function(require, exports, module) {
 
 
 var setCommandSpec = {
@@ -2691,7 +3957,7 @@ exports.shutdown = function(data, reason) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/commands/basic', ['require', 'exports', 'module' , 'pilot/typecheck', 'pilot/canon'], function(require, exports, module) {
+define('pilot/commands/basic', function(require, exports, module) {
 
 
 var checks = require("pilot/typecheck");
@@ -2941,85 +4207,6 @@ exports.shutdown = function(data, reason) {
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Joe Walker (jwalker@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/typecheck', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-var objectToString = Object.prototype.toString;
-
-/**
- * Return true if it is a String
- */
-exports.isString = function(it) {
-    return it && objectToString.call(it) === "[object String]";
-};
-
-/**
- * Returns true if it is a Boolean.
- */
-exports.isBoolean = function(it) {
-    return it && objectToString.call(it) === "[object Boolean]";
-};
-
-/**
- * Returns true if it is a Number.
- */
-exports.isNumber = function(it) {
-    return it && objectToString.call(it) === "[object Number]" && isFinite(it);
-};
-
-/**
- * Hack copied from dojo.
- */
-exports.isObject = function(it) {
-    return it !== undefined &&
-        (it === null || typeof it == "object" ||
-        Array.isArray(it) || exports.isFunction(it));
-};
-
-/**
- * Is the passed object a function?
- * From dojo.isFunction()
- */
-exports.isFunction = function(it) {
-    return it && objectToString.call(it) === "[object Function]";
-};
-
-});/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
  * The Original Code is Mozilla Skywriter.
  *
  * The Initial Developer of the Original Code is
@@ -3044,7 +4231,7 @@ exports.isFunction = function(it) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/settings/canon', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/settings/canon', function(require, exports, module) {
 
 
 var historyLengthSetting = {
@@ -3101,7 +4288,7 @@ exports.shutdown = function(data, reason) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/plugin_manager', ['require', 'exports', 'module' , 'pilot/promise'], function(require, exports, module) {
+define('pilot/plugin_manager', function(require, exports, module) {
 
 var Promise = require("pilot/promise").Promise;
 
@@ -3260,7 +4447,7 @@ exports.catalog = new exports.PluginCatalog();
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/promise', ['require', 'exports', 'module' , 'pilot/console', 'pilot/stacktrace'], function(require, exports, module) {
+define('pilot/promise', function(require, exports, module) {
 
 var console = require("pilot/console");
 var Trace = require('pilot/stacktrace').Trace;
@@ -3523,7 +4710,7 @@ exports._recent = _recent;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/environment', ['require', 'exports', 'module' , 'pilot/settings'], function(require, exports, module) {
+define('pilot/environment', function(require, exports, module) {
 
 
 var settings = require("pilot/settings").settings;
@@ -3581,7 +4768,7 @@ exports.create = create;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/editor', ['require', 'exports', 'module' , 'pilot/fixoldbrowsers', 'pilot/oop', 'pilot/event', 'pilot/lang', 'pilot/useragent', 'ace/keyboard/textinput', 'ace/mouse_handler', 'ace/keyboard/keybinding', 'ace/edit_session', 'ace/search', 'ace/background_tokenizer', 'ace/range', 'pilot/event_emitter'], function(require, exports, module) {
+define('ace/editor', function(require, exports, module) {
 
 require("pilot/fixoldbrowsers");
 
@@ -3656,7 +4843,7 @@ var Editor =function(renderer, session) {
 
     this.getKeyboardHandler = function() {
         return this.keyBinding.getKeyboardHandler();
-    }
+    };
 
     this.setSession = function(session) {
         if (this.session == session) return;
@@ -3788,13 +4975,16 @@ var Editor =function(renderer, session) {
     };
 
     this.focus = function() {
-        // Safari need the timeout
+        // Safari needs the timeout
         // iOS and Firefox need it called immediately
         // to be on the save side we do both
+        // except for IE
         var _self = this;
-        setTimeout(function() {
-            _self.textInput.focus();
-        });
+        if (!useragent.isIE) {        
+            setTimeout(function() {
+                _self.textInput.focus();
+            });
+        }
         this.textInput.focus();
     };
 
@@ -4453,7 +5643,7 @@ var Editor =function(renderer, session) {
 
     this.getCursorPositionScreen = function() {
         return this.session.documentToScreenPosition(this.getCursorPosition());
-    }
+    };
 
     this.getSelectionRange = function() {
         return this.selection.getRange();
@@ -4701,7 +5891,7 @@ exports.Editor = Editor;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/event', ['require', 'exports', 'module' , 'pilot/keys', 'pilot/useragent', 'pilot/dom'], function(require, exports, module) {
+define('pilot/event', function(require, exports, module) {
 
 var keys = require("pilot/keys");
 var useragent = require("pilot/useragent");
@@ -4970,120 +6160,6 @@ exports.addCommandKeyListener = function(el, callback) {
 };
 
 });
-/*! @license
-==========================================================================
-SproutCore -- JavaScript Application Framework
-copyright 2006-2009, Sprout Systems Inc., Apple Inc. and contributors.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-SproutCore and the SproutCore logo are trademarks of Sprout Systems, Inc.
-
-For more information about SproutCore, visit http://www.sproutcore.com
-
-
-==========================================================================
-@license */
-
-// Most of the following code is taken from SproutCore with a few changes.
-
-define('pilot/keys', ['require', 'exports', 'module' , 'pilot/oop'], function(require, exports, module) {
-
-var oop = require("pilot/oop");
-
-/**
- * Helper functions and hashes for key handling.
- */
-var Keys = (function() {
-    var ret = {
-        MODIFIER_KEYS: {
-            16: 'Shift', 17: 'Ctrl', 18: 'Alt', 224: 'Meta'
-        },
-
-        KEY_MODS: {
-            "ctrl": 1, "alt": 2, "option" : 2,
-            "shift": 4, "meta": 8, "command": 8
-        },
-
-        FUNCTION_KEYS : {
-            8  : "Backspace",
-            9  : "Tab",
-            13 : "Return",
-            19 : "Pause",
-            27 : "Esc",
-            32 : "Space",
-            33 : "PageUp",
-            34 : "PageDown",
-            35 : "End",
-            36 : "Home",
-            37 : "Left",
-            38 : "Up",
-            39 : "Right",
-            40 : "Down",
-            44 : "Print",
-            45 : "Insert",
-            46 : "Delete",
-            112: "F1",
-            113: "F2",
-            114: "F3",
-            115: "F4",
-            116: "F5",
-            117: "F6",
-            118: "F7",
-            119: "F8",
-            120: "F9",
-            121: "F10",
-            122: "F11",
-            123: "F12",
-            144: "Numlock",
-            145: "Scrolllock"
-        },
-
-        PRINTABLE_KEYS: {
-           32: ' ',  48: '0',  49: '1',  50: '2',  51: '3',  52: '4', 53:  '5',
-           54: '6',  55: '7',  56: '8',  57: '9',  59: ';',  61: '=', 65:  'a',
-           66: 'b',  67: 'c',  68: 'd',  69: 'e',  70: 'f',  71: 'g', 72:  'h',
-           73: 'i',  74: 'j',  75: 'k',  76: 'l',  77: 'm',  78: 'n', 79:  'o',
-           80: 'p',  81: 'q',  82: 'r',  83: 's',  84: 't',  85: 'u', 86:  'v',
-           87: 'w',  88: 'x',  89: 'y',  90: 'z', 107: '+', 109: '-', 110: '.',
-          188: ',', 190: '.', 191: '/', 192: '`', 219: '[', 220: '\\',
-          221: ']', 222: '\"'
-        }
-    };
-
-    // A reverse map of FUNCTION_KEYS
-    for (i in ret.FUNCTION_KEYS) {
-        var name = ret.FUNCTION_KEYS[i].toUpperCase();
-        ret[name] = parseInt(i, 10);
-    }
-
-    // Add the MODIFIER_KEYS, FUNCTION_KEYS and PRINTABLE_KEYS to the KEY
-    // variables as well.
-    oop.mixin(ret, ret.MODIFIER_KEYS);
-    oop.mixin(ret, ret.PRINTABLE_KEYS);
-    oop.mixin(ret, ret.FUNCTION_KEYS);
-
-    return ret;
-})();
-oop.mixin(exports, Keys);
-
-});
 /* vim:ts=4:sts=4:sw=4:
  * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -5123,7 +6199,7 @@ oop.mixin(exports, Keys);
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/dom', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('pilot/dom', function(require, exports, module) {
 
 var XHTML_NS = "http://www.w3.org/1999/xhtml";
 
@@ -5334,7 +6410,7 @@ exports.getInnerText = function(el) {
     if (document.body && "textContent" in document.body)
         return el.textContent;
     else
-         return el.innerText || el.textContent;
+         return el.innerText || el.textContent || "";
 };
 
 exports.getParentWindow = function(document) {
@@ -5412,7 +6488,7 @@ exports.setSelectionEnd = function(textarea, end) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/keyboard/textinput', ['require', 'exports', 'module' , 'pilot/event', 'pilot/useragent', 'pilot/dom'], function(require, exports, module) {
+define('ace/keyboard/textinput', function(require, exports, module) {
 
 var event = require("pilot/event");
 var useragent = require("pilot/useragent");
@@ -5659,7 +6735,7 @@ exports.TextInput = TextInput;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mouse_handler', ['require', 'exports', 'module' , 'pilot/event', 'pilot/dom'], function(require, exports, module) {
+define('ace/mouse_handler', function(require, exports, module) {
 
 var event = require("pilot/event");
 var dom = require("pilot/dom");
@@ -5723,8 +6799,8 @@ var MouseHandler = function(editor) {
         var state = STATE_UNKNOWN;
         var inSelection = false;
     
-        var button = event.getButton(e)
-        if (button != 0) {
+        var button = event.getButton(e);
+        if (button !== 0) {
             if (selectionEmpty) {
                 editor.moveCursorToPosition(pos);
             }
@@ -5733,10 +6809,11 @@ var MouseHandler = function(editor) {
                 event.capture(editor.container, function(){}, editor.textInput.onContextMenuClose);
             }
             return;
-        } else
-            inSelection = !editor.getReadOnly() &&
-                          !selectionEmpty &&
-                          selectionRange.contains(pos.row, pos.column);
+        } else {
+            inSelection = !editor.getReadOnly()
+                && !selectionEmpty
+                && selectionRange.contains(pos.row, pos.column);
+        }
 
         if (!inSelection) {
             // Directly pick STATE_SELECT, since the user is not clicking inside
@@ -5748,8 +6825,8 @@ var MouseHandler = function(editor) {
     
         var mousePageX, mousePageY;
         var overwrite = editor.getOverwrite();
-        var dragCursor = null;
         var mousedownTime = (new Date()).getTime();
+        var dragCursor, dragRange;
     
         var onMouseSelection = function(e) {
             mousePageX = event.getDocumentX(e);
@@ -5769,6 +6846,7 @@ var MouseHandler = function(editor) {
 
         var onMouseDragSelectionEnd = function() {
             dom.removeCssClass(editor.container, "ace_dragging");
+            editor.session.removeMarker(dragSelectionMarker);
 
             if (!self.$clickSelection) {
                 if (!dragCursor) {
@@ -5780,14 +6858,13 @@ var MouseHandler = function(editor) {
             if (!dragCursor)
                 return;
 
-            var selection = editor.getSelectionRange();
-            if (selection.contains(dragCursor.row, dragCursor.column)) {
+            if (dragRange.contains(dragCursor.row, dragCursor.column)) {
                 dragCursor = null;
                 return;
             }
 
             editor.clearSelection();
-            var newRange = editor.moveText(selection, dragCursor);
+            var newRange = editor.moveText(dragRange, dragCursor);
             if (!newRange) {
                 dragCursor = null;
                 return;
@@ -5812,6 +6889,10 @@ var MouseHandler = function(editor) {
                     onStartSelect(cursor);
                 } else if ((time - mousedownTime) > DRAG_TIMER) {
                     state = STATE_DRAG;
+                    dragRange = editor.getSelectionRange();
+                    var style = editor.getSelectionStyle();
+                    dragSelectionMarker = editor.session.addMarker(dragRange, "ace_selection", style);
+                    editor.clearSelection();
                     dom.addCssClass(editor.container, "ace_dragging");
                 }
 
@@ -5864,8 +6945,7 @@ var MouseHandler = function(editor) {
             dragCursor.row = Math.max(0, Math.min(dragCursor.row,
                                                   editor.session.getLength() - 1));
 
-            editor.renderer.updateCursor(dragCursor, overwrite);
-            editor.renderer.scrollCursorIntoView();
+            editor.moveCursorToPosition(dragCursor);
         };
 
         event.capture(editor.container, onMouseSelection, onMouseSelectionEnd);
@@ -5943,25 +7023,19 @@ exports.MouseHandler = MouseHandler;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/keyboard/keybinding', ['require', 'exports', 'module' , 'pilot/useragent', 'pilot/keys', 'pilot/event', 'pilot/settings', 'ace/keyboard/hash_handler', 'ace/keyboard/keybinding/default_mac', 'ace/keyboard/keybinding/default_win', 'pilot/canon', 'ace/commands/default_commands'], function(require, exports, module) {
+define('ace/keyboard/keybinding', function(require, exports, module) {
 
 var useragent = require("pilot/useragent");
 var keyUtil  = require("pilot/keys");
 var event = require("pilot/event");
 var settings  = require("pilot/settings").settings;
-var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
-var default_mac = require("ace/keyboard/keybinding/default_mac").bindings;
-var default_win = require("ace/keyboard/keybinding/default_win").bindings;
 var canon = require("pilot/canon");
 require("ace/commands/default_commands");
 
-var KeyBinding = function(editor, config) {
+var KeyBinding = function(editor) {
     this.$editor = editor;
     this.$data = { };
     this.$keyboardHandler = null;
-    this.$defaulKeyboardHandler = new HashHandler(config || (useragent.isMac
-        ? default_mac
-        : default_win));
 };
 
 (function() {
@@ -5977,7 +7051,9 @@ var KeyBinding = function(editor, config) {
     };
 
     this.$callKeyboardHandler = function (e, hashId, keyOrText, keyCode) {
-        var toExecute;
+        var env = {editor: this.$editor},
+            toExecute;
+
         if (this.$keyboardHandler) {
             toExecute =
                 this.$keyboardHandler.handleKeyboard(this.$data, hashId, keyOrText, keyCode, e);
@@ -5985,13 +7061,23 @@ var KeyBinding = function(editor, config) {
 
         // If there is nothing to execute yet, then use the default keymapping.
         if (!toExecute || !toExecute.command) {
-            toExecute = this.$defaulKeyboardHandler.
-                handleKeyboard(this.$data, hashId, keyOrText, keyCode, e);
+            if (hashId != 0 || keyCode != 0) {
+                toExecute = {
+                    command: canon.findKeyCommand(env, "editor", hashId, keyOrText)
+                }
+            } else {
+                toExecute = {
+                    command: "inserttext",
+                    args: {
+                        text: keyOrText
+                    }
+                }
+            }
         }
 
         if (toExecute) {
             var success = canon.exec(toExecute.command,
-                                        {editor: this.$editor}, toExecute.args);
+                                        env, "editor", toExecute.args);
             if (success) {
                 return event.stopEvent(e);
             }
@@ -5999,10 +7085,8 @@ var KeyBinding = function(editor, config) {
     };
 
     this.onCommandKey = function(e, hashId, keyCode) {
-        key = (keyUtil[keyCode] ||
-                String.fromCharCode(keyCode)).toLowerCase();
-
-        this.$callKeyboardHandler(e, hashId, key, keyCode);
+        var keyString = keyUtil.keyCodeToString(keyCode);
+        this.$callKeyboardHandler(e, hashId, keyString, keyCode);
     };
 
     this.onTextInput = function(text) {
@@ -6012,306 +7096,6 @@ var KeyBinding = function(editor, config) {
 }).call(KeyBinding.prototype);
 
 exports.KeyBinding = KeyBinding;
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Fabian Jakobs <fabian AT ajax DOT org>
- *   Julian Viereck (julian.viereck@gmail.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/keyboard/hash_handler', ['require', 'exports', 'module' , 'pilot/keys'], function(require, exports, module) {
-
-var keyUtil  = require("pilot/keys");
-
-function HashHandler(config) {
-    this.setConfig(config);
-}
-
-(function() {
-    function splitSafe(s, separator, limit, bLowerCase) {
-        return (bLowerCase && s.toLowerCase() || s)
-            .replace(/(?:^\s+|\n|\s+$)/g, "")
-            .split(new RegExp("[\\s ]*" + separator + "[\\s ]*", "g"), limit || 999);
-    }
-
-    function parseKeys(keys, val, ret) {
-        var key,
-            hashId = 0,
-            parts  = splitSafe(keys, "\\-", null, true),
-            i      = 0,
-            l      = parts.length;
-
-        for (; i < l; ++i) {
-            if (keyUtil.KEY_MODS[parts[i]])
-                hashId = hashId | keyUtil.KEY_MODS[parts[i]];
-            else
-                key = parts[i] || "-"; //when empty, the splitSafe removed a '-'
-        }
-
-        (ret[hashId] || (ret[hashId] = {}))[key] = val;
-        return ret;
-    }
-
-    function objectReverse(obj, keySplit) {
-        var i, j, l, key,
-            ret = {};
-        for (i in obj) {
-            key = obj[i];
-            if (keySplit && typeof key == "string") {
-                key = key.split(keySplit);
-                for (j = 0, l = key.length; j < l; ++j)
-                    parseKeys.call(this, key[j], i, ret);
-            }
-            else {
-                parseKeys.call(this, key, i, ret);
-            }
-        }
-        return ret;
-    }
-
-    this.setConfig = function(config) {
-        this.$config = config;
-        if (typeof this.$config.reverse == "undefined")
-            this.$config.reverse = objectReverse.call(this, this.$config, "|");
-    };
-
-    /**
-     * This function is called by keyBinding.
-     */
-    this.handleKeyboard = function(data, hashId, textOrKey, keyCode) {
-        // Figure out if a commandKey was pressed or just some text was insert.
-        if (hashId != 0 || keyCode != 0) {
-            return {
-                command: (this.$config.reverse[hashId] || {})[textOrKey]
-            }
-        } else {
-            return {
-                command: "inserttext",
-                args: {
-                    text: textOrKey
-                }
-            }
-        }
-    }
-}).call(HashHandler.prototype)
-
-exports.HashHandler = HashHandler;
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/keyboard/keybinding/default_mac', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-exports.bindings = {
-    "selectall": "Command-A",
-    "removeline": "Command-D",
-    "gotoline": "Command-L",
-    "togglecomment": "Command-7",
-    "findnext": "Command-G",
-    "findprevious": "Command-Shift-G",
-    "find": "Command-F",
-    "replace": "Command-R",
-    "undo": "Command-Z",
-    "redo": "Command-Shift-Z|Command-Y",
-    "overwrite": "Insert",
-    "copylinesup": "Command-Option-Up",
-    "movelinesup": "Option-Up",
-    "selecttostart": "Command-Shift-Up",
-    "gotostart": "Command-Home|Command-Up",
-    "selectup": "Shift-Up",
-    "golineup": "Up|Ctrl-P",
-    "copylinesdown": "Command-Option-Down",
-    "movelinesdown": "Option-Down",
-    "selecttoend": "Command-Shift-Down",
-    "gotoend": "Command-End|Command-Down",
-    "selectdown": "Shift-Down",
-    "golinedown": "Down|Ctrl-N",
-    "selectwordleft": "Option-Shift-Left",
-    "gotowordleft": "Option-Left",
-    "selecttolinestart": "Command-Shift-Left",
-    "gotolinestart": "Command-Left|Home|Ctrl-A",
-    "selectleft": "Shift-Left",
-    "gotoleft": "Left|Ctrl-B",
-    "selectwordright": "Option-Shift-Right",
-    "gotowordright": "Option-Right",
-    "selecttolineend": "Command-Shift-Right",
-    "gotolineend": "Command-Right|End|Ctrl-E",
-    "selectright": "Shift-Right",
-    "gotoright": "Right|Ctrl-F",
-    "selectpagedown": "Shift-PageDown",
-    "pagedown": "PageDown",
-    "gotopagedown": "Option-PageDown|Ctrl-V",
-    "selectpageup": "Shift-PageUp",
-    "pageup": "PageUp",
-    "gotopageup": "Option-PageUp",
-    "selectlinestart": "Shift-Home",
-    "selectlineend": "Shift-End",
-    "del": "Delete|Ctrl-D",
-    "backspace": "Ctrl-Backspace|Command-Backspace|Shift-Backspace|Backspace|Ctrl-H",
-    "removetolineend": "Ctrl-K",
-    "removetolinestart": "Option-Backspace",
-    "removewordleft": "Alt-Backspace|Ctrl-Alt-Backspace",
-    "removewordright": "Alt-Delete",
-    "outdent": "Shift-Tab",
-    "indent": "Tab",
-    "transposeletters": "Ctrl-T",
-    "splitline": "Ctrl-O",
-    "centerselection": "Ctrl-L"
-};
-
-});/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/keyboard/keybinding/default_win', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-exports.bindings = {
-    "selectall": "Ctrl-A",
-    "removeline": "Ctrl-D",
-    "gotoline": "Ctrl-L",
-    "togglecomment": "Ctrl-7",
-    "findnext": "Ctrl-K",
-    "findprevious": "Ctrl-Shift-K",
-    "find": "Ctrl-F",
-    "replace": "Ctrl-R",
-    "undo": "Ctrl-Z",
-    "redo": "Ctrl-Shift-Z|Ctrl-Y",
-    "overwrite": "Insert",
-    "copylinesup": "Ctrl-Alt-Up",
-    "movelinesup": "Alt-Up",
-    "selecttostart": "Alt-Shift-Up",
-    "gotostart": "Ctrl-Home|Ctrl-Up",
-    "selectup": "Shift-Up",
-    "golineup": "Up",
-    "copylinesdown": "Ctrl-Alt-Down",
-    "movelinesdown": "Alt-Down",
-    "selecttoend": "Alt-Shift-Down",
-    "gotoend": "Ctrl-End|Ctrl-Down",
-    "selectdown": "Shift-Down",
-    "golinedown": "Down",
-    "selectwordleft": "Ctrl-Shift-Left",
-    "gotowordleft": "Ctrl-Left",
-    "selecttolinestart": "Alt-Shift-Left",
-    "gotolinestart": "Alt-Left|Home",
-    "selectleft": "Shift-Left",
-    "gotoleft": "Left",
-    "selectwordright": "Ctrl-Shift-Right",
-    "gotowordright": "Ctrl-Right",
-    "selecttolineend": "Alt-Shift-Right",
-    "gotolineend": "Alt-Right|End",
-    "selectright": "Shift-Right",
-    "gotoright": "Right",
-    "selectpagedown": "Shift-PageDown",
-    "gotopagedown": "PageDown",
-    "selectpageup": "Shift-PageUp",
-    "gotopageup": "PageUp",
-    "selectlinestart": "Shift-Home",
-    "selectlineend": "Shift-End",
-    "del": "Delete",
-    "backspace": "Ctrl-Backspace|Command-Backspace|Option-Backspace|Shift-Backspace|Backspace",
-    "outdent": "Shift-Tab",
-    "indent": "Tab"
-};
-
 });
 /* vim:ts=4:sts=4:sw=4:
  * ***** BEGIN LICENSE BLOCK *****
@@ -6353,10 +7137,18 @@ exports.bindings = {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/commands/default_commands', ['require', 'exports', 'module' , 'pilot/lang', 'pilot/canon'], function(require, exports, module) {
+define('ace/commands/default_commands', function(require, exports, module) {
 
 var lang = require("pilot/lang");
 var canon = require("pilot/canon");
+
+function bindKey(win, mac) {
+    return {
+        win: win,
+        mac: mac,
+        sender: "editor"
+    };
+}
 
 canon.addCommand({
     name: "null",
@@ -6365,14 +7157,17 @@ canon.addCommand({
 
 canon.addCommand({
     name: "selectall",
+    bindKey: bindKey("Ctrl-A", "Command-A"),
     exec: function(env, args, request) { env.editor.selectAll(); }
 });
 canon.addCommand({
     name: "removeline",
+    bindKey: bindKey("Ctrl-D", "Command-D"),
     exec: function(env, args, request) { env.editor.removeLines(); }
 });
 canon.addCommand({
     name: "gotoline",
+    bindKey: bindKey("Ctrl-L", "Command-L"),
     exec: function(env, args, request) {
         var line = parseInt(prompt("Enter line number:"));
         if (!isNaN(line)) {
@@ -6382,18 +7177,22 @@ canon.addCommand({
 });
 canon.addCommand({
     name: "togglecomment",
+    bindKey: bindKey("Ctrl-7", "Command-7"),
     exec: function(env, args, request) { env.editor.toggleCommentLines(); }
 });
 canon.addCommand({
     name: "findnext",
+    bindKey: bindKey("Ctrl-K", "Command-G"),
     exec: function(env, args, request) { env.editor.findNext(); }
 });
 canon.addCommand({
     name: "findprevious",
+    bindKey: bindKey("Ctrl-Shift-K", "Command-Shift-G"),
     exec: function(env, args, request) { env.editor.findPrevious(); }
 });
 canon.addCommand({
     name: "find",
+    bindKey: bindKey("Ctrl-F", "Command-F"),
     exec: function(env, args, request) {
         var needle = prompt("Find:");
         env.editor.find(needle);
@@ -6401,6 +7200,7 @@ canon.addCommand({
 });
 canon.addCommand({
     name: "replace",
+    bindKey: bindKey("Ctrl-R", "Command-Option-F"),
     exec: function(env, args, request) {
         var needle = prompt("Find:");
         if (!needle)
@@ -6413,6 +7213,7 @@ canon.addCommand({
 });
 canon.addCommand({
     name: "replaceall",
+    bindKey: bindKey("Ctrl-Shift-R", "Command-Shift-Option-F"),
     exec: function(env, args, request) {
         var needle = prompt("Find:");
         if (!needle)
@@ -6425,186 +7226,220 @@ canon.addCommand({
 });
 canon.addCommand({
     name: "undo",
+    bindKey: bindKey("Ctrl-Z", "Command-Z"),
     exec: function(env, args, request) { env.editor.undo(); }
 });
 canon.addCommand({
     name: "redo",
-    exec: function(env, args, request) { env.editor.redo(); }
-});
-canon.addCommand({
-    name: "redo",
+    bindKey: bindKey("Ctrl-Shift-Z|Ctrl-Y", "Command-Shift-Z|Command-Y"),
     exec: function(env, args, request) { env.editor.redo(); }
 });
 canon.addCommand({
     name: "overwrite",
+    bindKey: bindKey("Insert", "Insert"),
     exec: function(env, args, request) { env.editor.toggleOverwrite(); }
 });
 canon.addCommand({
     name: "copylinesup",
+    bindKey: bindKey("Ctrl-Alt-Up", "Command-Option-Up"),
     exec: function(env, args, request) { env.editor.copyLinesUp(); }
 });
 canon.addCommand({
     name: "movelinesup",
+    bindKey: bindKey("Alt-Up", "Option-Up"),
     exec: function(env, args, request) { env.editor.moveLinesUp(); }
 });
 canon.addCommand({
     name: "selecttostart",
+    bindKey: bindKey("Alt-Shift-Up", "Command-Shift-Up"),
     exec: function(env, args, request) { env.editor.getSelection().selectFileStart(); }
 });
 canon.addCommand({
     name: "gotostart",
+    bindKey: bindKey("Ctrl-Home|Ctrl-Up", "Command-Home|Command-Up"),
     exec: function(env, args, request) { env.editor.navigateFileStart(); }
 });
 canon.addCommand({
     name: "selectup",
+    bindKey: bindKey("Shift-Up", "Shift-Up"),
     exec: function(env, args, request) { env.editor.getSelection().selectUp(); }
 });
 canon.addCommand({
     name: "golineup",
+    bindKey: bindKey("Up", "Up|Ctrl-P"),
     exec: function(env, args, request) { env.editor.navigateUp(args.times); }
 });
 canon.addCommand({
     name: "copylinesdown",
+    bindKey: bindKey("Ctrl-Alt-Down", "Command-Option-Down"),
     exec: function(env, args, request) { env.editor.copyLinesDown(); }
 });
 canon.addCommand({
     name: "movelinesdown",
+    bindKey: bindKey("Alt-Down", "Option-Down"),
     exec: function(env, args, request) { env.editor.moveLinesDown(); }
 });
 canon.addCommand({
     name: "selecttoend",
+    bindKey: bindKey("Alt-Shift-Down", "Command-Shift-Down"),
     exec: function(env, args, request) { env.editor.getSelection().selectFileEnd(); }
 });
 canon.addCommand({
     name: "gotoend",
+    bindKey: bindKey("Ctrl-End|Ctrl-Down", "Command-End|Command-Down"),
     exec: function(env, args, request) { env.editor.navigateFileEnd(); }
 });
 canon.addCommand({
     name: "selectdown",
+    bindKey: bindKey("Shift-Down", "Shift-Down"),
     exec: function(env, args, request) { env.editor.getSelection().selectDown(); }
 });
 canon.addCommand({
     name: "golinedown",
+    bindKey: bindKey("Down", "Down|Ctrl-N"),
     exec: function(env, args, request) { env.editor.navigateDown(args.times); }
 });
 canon.addCommand({
     name: "selectwordleft",
+    bindKey: bindKey("Ctrl-Shift-Left", "Option-Shift-Left"),
     exec: function(env, args, request) { env.editor.getSelection().selectWordLeft(); }
 });
 canon.addCommand({
     name: "gotowordleft",
+    bindKey: bindKey("Ctrl-Left", "Option-Left"),
     exec: function(env, args, request) { env.editor.navigateWordLeft(); }
 });
 canon.addCommand({
     name: "selecttolinestart",
+    bindKey: bindKey("Alt-Shift-Left", "Command-Shift-Left"),
     exec: function(env, args, request) { env.editor.getSelection().selectLineStart(); }
 });
 canon.addCommand({
     name: "gotolinestart",
+    bindKey: bindKey("Alt-Left|Home", "Command-Left|Home|Ctrl-A"),
     exec: function(env, args, request) { env.editor.navigateLineStart(); }
 });
 canon.addCommand({
     name: "selectleft",
+    bindKey: bindKey("Shift-Left", "Shift-Left"),
     exec: function(env, args, request) { env.editor.getSelection().selectLeft(); }
 });
 canon.addCommand({
     name: "gotoleft",
+    bindKey: bindKey("Left", "Left|Ctrl-B"),
     exec: function(env, args, request) { env.editor.navigateLeft(args.times); }
 });
 canon.addCommand({
     name: "selectwordright",
+    bindKey: bindKey("Ctrl-Shift-Right", "Option-Shift-Right"),
     exec: function(env, args, request) { env.editor.getSelection().selectWordRight(); }
 });
 canon.addCommand({
     name: "gotowordright",
+    bindKey: bindKey("Ctrl-Right", "Option-Right"),
     exec: function(env, args, request) { env.editor.navigateWordRight(); }
 });
 canon.addCommand({
     name: "selecttolineend",
+    bindKey: bindKey("Alt-Shift-Right", "Command-Shift-Right"),
     exec: function(env, args, request) { env.editor.getSelection().selectLineEnd(); }
 });
 canon.addCommand({
     name: "gotolineend",
+    bindKey: bindKey("Alt-Right|End", "Command-Right|End|Ctrl-E"),
     exec: function(env, args, request) { env.editor.navigateLineEnd(); }
 });
 canon.addCommand({
     name: "selectright",
+    bindKey: bindKey("Shift-Right", "Shift-Right"),
     exec: function(env, args, request) { env.editor.getSelection().selectRight(); }
 });
 canon.addCommand({
     name: "gotoright",
+    bindKey: bindKey("Right", "Right|Ctrl-F"),
     exec: function(env, args, request) { env.editor.navigateRight(args.times); }
 });
 canon.addCommand({
     name: "selectpagedown",
+    bindKey: bindKey("Shift-PageDown", "Shift-PageDown"),
     exec: function(env, args, request) { env.editor.selectPageDown(); }
 });
 canon.addCommand({
     name: "pagedown",
+    bindKey: bindKey(null, "PageDown"),
     exec: function(env, args, request) { env.editor.scrollPageDown(); }
 });
 canon.addCommand({
     name: "gotopagedown",
+    bindKey: bindKey("PageDown", "Option-PageDown|Ctrl-V"),
     exec: function(env, args, request) { env.editor.gotoPageDown(); }
 });
 canon.addCommand({
     name: "selectpageup",
+    bindKey: bindKey("Shift-PageUp", "Shift-PageUp"),
     exec: function(env, args, request) { env.editor.selectPageUp(); }
 });
 canon.addCommand({
     name: "pageup",
+    bindKey: bindKey(null, "PageUp"),
     exec: function(env, args, request) { env.editor.scrollPageUp(); }
 });
 canon.addCommand({
     name: "gotopageup",
+    bindKey: bindKey("PageUp", "Option-PageUp"),
     exec: function(env, args, request) { env.editor.gotoPageUp(); }
 });
 canon.addCommand({
     name: "selectlinestart",
+    bindKey: bindKey("Shift-Home", "Shift-Home"),
     exec: function(env, args, request) { env.editor.getSelection().selectLineStart(); }
 });
 canon.addCommand({
-    name: "gotolinestart",
-    exec: function(env, args, request) { env.editor.navigateLineStart(); }
-});
-canon.addCommand({
     name: "selectlineend",
+    bindKey: bindKey("Shift-End", "Shift-End"),
     exec: function(env, args, request) { env.editor.getSelection().selectLineEnd(); }
 });
 canon.addCommand({
-    name: "gotolineend",
-    exec: function(env, args, request) { env.editor.navigateLineEnd(); }
-});
-canon.addCommand({
     name: "del",
+    bindKey: bindKey("Delete", "Delete|Ctrl-D"),
     exec: function(env, args, request) { env.editor.removeRight(); }
 });
 canon.addCommand({
     name: "backspace",
+    bindKey: bindKey(
+        "Ctrl-Backspace|Command-Backspace|Option-Backspace|Shift-Backspace|Backspace",
+        "Ctrl-Backspace|Command-Backspace|Shift-Backspace|Backspace|Ctrl-H"
+    ),
     exec: function(env, args, request) { env.editor.removeLeft(); }
 });
 canon.addCommand({
     name: "removetolinestart",
+    bindKey: bindKey(null, "Option-Backspace"),
     exec: function(env, args, request) { env.editor.removeToLineStart(); }
 });
 canon.addCommand({
     name: "removetolineend",
+    bindKey: bindKey(null, "Ctrl-K"),
     exec: function(env, args, request) { env.editor.removeToLineEnd(); }
 });
 canon.addCommand({
     name: "removewordleft",
+    bindKey: bindKey(null, "Alt-Backspace|Ctrl-Alt-Backspace"),
     exec: function(env, args, request) { env.editor.removeWordLeft(); }
 });
 canon.addCommand({
     name: "removewordright",
+    bindKey: bindKey(null, "Alt-Delete"),
     exec: function(env, args, request) { env.editor.removeWordRight(); }
 });
 canon.addCommand({
     name: "outdent",
+    bindKey: bindKey("Shift-Tab", "Shift-Tab"),
     exec: function(env, args, request) { env.editor.blockOutdent(); }
 });
 canon.addCommand({
     name: "indent",
+    bindKey: bindKey("Tab", "Tab"),
     exec: function(env, args, request) { env.editor.indent(); }
 });
 canon.addCommand({
@@ -6615,20 +7450,21 @@ canon.addCommand({
 });
 canon.addCommand({
     name: "centerselection",
+    bindKey: bindKey("Ctrl-L", "Ctrl-L"),
     exec: function(env, args, request) { env.editor.centerSelection(); }
 });
 canon.addCommand({
     name: "splitline",
+    bindKey: bindKey(null, "Ctrl-O"),
     exec: function(env, args, request) { env.editor.splitLine(); }
 });
 canon.addCommand({
     name: "transposeletters",
+    bindKey: bindKey("Ctrl-T", "Ctrl-T"),
     exec: function(env, args, request) { env.editor.transposeLetters(); }
 });
 
-
-});
-/* vim:ts=4:sts=4:sw=4:
+});/* vim:ts=4:sts=4:sw=4:
  * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -6667,7 +7503,7 @@ canon.addCommand({
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/edit_session', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/lang', 'pilot/event_emitter', 'ace/selection', 'ace/mode/text', 'ace/range', 'ace/document'], function(require, exports, module) {
+define('ace/edit_session', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var lang = require("pilot/lang");
@@ -7965,7 +8801,7 @@ exports.EditSession = EditSession;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/selection', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/lang', 'pilot/event_emitter', 'ace/range'], function(require, exports, module) {
+define('ace/selection', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var lang = require("pilot/lang");
@@ -8386,7 +9222,7 @@ exports.Selection = Selection;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/range', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('ace/range', function(require, exports, module) {
 
 var Range = function(startRow, startColumn, endRow, endColumn) {
     this.start = {
@@ -8555,7 +9391,7 @@ exports.Range = Range;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/text', ['require', 'exports', 'module' , 'ace/tokenizer', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+define('ace/mode/text', function(require, exports, module) {
 
 var Tokenizer = require("ace/tokenizer").Tokenizer;
 var TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
@@ -8700,21 +9536,22 @@ exports.Mode = Mode;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/tokenizer', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('ace/tokenizer', function(require, exports, module) {
 
 var Tokenizer = function(rules) {
     this.rules = rules;
 
     this.regExps = {};
     for ( var key in this.rules) {
-        var state = this.rules[key];
+        var rule = this.rules[key];
+        var state = rule;
         var ruleRegExps = [];
 
-        for ( var i = 0; i < state.length; i++) {
+        for ( var i = 0; i < state.length; i++)
             ruleRegExps.push(state[i].regex);
-        };
 
         this.regExps[key] = new RegExp("(?:(" + ruleRegExps.join(")|(") + ")|(.))", "g");
+        
     }
 };
 
@@ -8741,19 +9578,19 @@ var Tokenizer = function(rules) {
 
             for ( var i = 0; i < state.length; i++) {
                 if (match[i + 1]) {
-                    if (typeof state[i].token == "function") {
-                        type = state[i].token(match[0]);
-                    }
-                    else {
-                        type = state[i].token;
-                    }
+                    var rule = state[i];
+                    
+                    if (typeof rule.token == "function")
+                        type = rule.token(match[0]);
+                    else
+                        type = rule.token;
 
-                    if (state[i].next && state[i].next !== currentState) {
-                        currentState = state[i].next;
-                        var state = this.rules[currentState];
-                        var lastIndex = re.lastIndex;
+                    if (rule.next && rule.next !== currentState) {
+                        currentState = rule.next;
+                        state = this.rules[currentState];
+                        lastIndex = re.lastIndex;
 
-                        var re = this.regExps[currentState];
+                        re = this.regExps[currentState];
                         re.lastIndex = lastIndex;
                     }
                     break;
@@ -8762,9 +9599,9 @@ var Tokenizer = function(rules) {
             
                   
             if (token.type !== type) {
-                if (token.type) {
+                if (token.type)
                     tokens.push(token);
-                }
+                    
                 token = {
                     type: type,
                     value: value
@@ -8773,16 +9610,14 @@ var Tokenizer = function(rules) {
                 token.value += value;
             }
             
-            if (lastIndex == line.length) {
-    	        break;
-            }
+            if (lastIndex == line.length)
+                break;
             
             lastIndex = re.lastIndex;
         };
 
-        if (token.type) {
+        if (token.type)
             tokens.push(token);
-        }
 
         return {
             tokens : tokens,
@@ -8831,7 +9666,7 @@ exports.Tokenizer = Tokenizer;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/text_highlight_rules', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('ace/mode/text_highlight_rules', function(require, exports, module) {
 
 var TextHighlightRules = function() {
 
@@ -8911,7 +9746,7 @@ exports.TextHighlightRules = TextHighlightRules;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/document', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/event_emitter', 'ace/range', 'ace/anchor'], function(require, exports, module) {
+define('ace/document', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var EventEmitter = require("pilot/event_emitter").EventEmitter;
@@ -9312,7 +10147,7 @@ exports.Document = Document;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/anchor', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/event_emitter'], function(require, exports, module) {
+define('ace/anchor', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var EventEmitter = require("pilot/event_emitter").EventEmitter;
@@ -9505,7 +10340,7 @@ var Anchor = exports.Anchor = function(doc, row, column) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/search', ['require', 'exports', 'module' , 'pilot/lang', 'pilot/oop', 'ace/range'], function(require, exports, module) {
+define('ace/search', function(require, exports, module) {
 
 var lang = require("pilot/lang");
 var oop = require("pilot/oop");
@@ -9837,7 +10672,7 @@ exports.Search = Search;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/background_tokenizer', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/event_emitter'], function(require, exports, module) {
+define('ace/background_tokenizer', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var EventEmitter = require("pilot/event_emitter").EventEmitter;
@@ -10011,7 +10846,7 @@ exports.BackgroundTokenizer = BackgroundTokenizer;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/undomanager', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('ace/undomanager', function(require, exports, module) {
 
 var UndoManager = function() {
     this.reset();
@@ -10095,7 +10930,7 @@ exports.UndoManager = UndoManager;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/theme/textmate', ['require', 'exports', 'module' , 'pilot/dom'], function(require, exports, module) {
+define('ace/theme/textmate', function(require, exports, module) {
 
     var dom = require("pilot/dom");
 
@@ -10283,7 +11118,7 @@ define('ace/theme/textmate', ['require', 'exports', 'module' , 'pilot/dom'], fun
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/matching_brace_outdent', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
+define('ace/mode/matching_brace_outdent', function(require, exports, module) {
 
 var Range = require("ace/range").Range;
 
@@ -10363,7 +11198,7 @@ exports.MatchingBraceOutdent = MatchingBraceOutdent;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/javascript', ['require', 'exports', 'module' , 'pilot/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/javascript_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/worker/worker_client'], function(require, exports, module) {
+define('ace/mode/javascript', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var TextMode = require("ace/mode/text").Mode;
@@ -10532,7 +11367,7 @@ exports.Mode = Mode;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/javascript_highlight_rules', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+define('ace/mode/javascript_highlight_rules', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var lang = require("pilot/lang");
@@ -10562,102 +11397,105 @@ var JavaScriptHighlightRules = function() {
 
     this.$rules = {
         "start" : [
-	        {
-	            token : "comment",
-	            regex : "\\/\\/.*$"
-	        },
-	        docComment.getStartRule("doc-start"),
-	        {
-	            token : "comment", // multi line comment
-	            regex : "\\/\\*",
-	            next : "comment"
-	        }, {
-	            token : "string.regexp",
-	            regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/]\\w*\\s*(?=[).,;]|$)"
-	        }, {
-	            token : "string", // single line
-	            regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
-	        }, {
-	            token : "string", // multi line string start
-	            regex : '["].*\\\\$',
-	            next : "qqstring"
-	        }, {
-	            token : "string", // single line
-	            regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
-	        }, {
-	            token : "string", // multi line string start
-	            regex : "['].*\\\\$",
-	            next : "qstring"
-	        }, {
-	            token : "constant.numeric", // hex
-	            regex : "0[xX][0-9a-fA-F]+\\b"
-	        }, {
-	            token : "constant.numeric", // float
-	            regex : "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"
-	        }, {
-	            token : "constant.language.boolean",
-	            regex : "(?:true|false)\\b"
-	        }, {
-	            token : function(value) {
-	                if (value == "this")
-	                    return "variable.language";
-	                else if (keywords.hasOwnProperty(value))
-	                    return "keyword";
-	                else if (buildinConstants.hasOwnProperty(value))
-	                    return "constant.language";
-	                else if (futureReserved.hasOwnProperty(value))
-	                    return "invalid.illegal";
-	                else if (value == "debugger")
-	                    return "invalid.deprecated";
-	                else
-	                    return "identifier";
-	            },
-	            // TODO: Unicode escape sequences
-	            // TODO: Unicode identifiers
-	            regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
-	        }, {
-	            token : "keyword.operator",
-	            regex : "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
-	        }, {
-	            token : "lparen",
-	            regex : "[[({]"
-	        }, {
-	            token : "rparen",
-	            regex : "[\\])}]"
-	        }, {
-	            token : "text",
-	            regex : "\\s+"
-	        }
+            {
+                token : "comment",
+                regex : "\\/\\/.*$"
+            },
+            docComment.getStartRule("doc-start"),
+            {
+                token : "comment", // multi line comment
+                regex : "\\/\\*",
+                next : "comment"
+            }, {
+                token : "string.regexp",
+                regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/]\\w*\\s*(?=[).,;]|$)"
+            }, {
+                token : "string", // single line
+                regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
+            }, {
+                token : "string", // multi line string start
+                regex : '["].*\\\\$',
+                next : "qqstring"
+            }, {
+                token : "string", // single line
+                regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
+            }, {
+                token : "string", // multi line string start
+                regex : "['].*\\\\$",
+                next : "qstring"
+            }, {
+                token : "constant.numeric", // hex
+                regex : "0[xX][0-9a-fA-F]+\\b"
+            }, {
+                token : "constant.numeric", // float
+                regex : "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"
+            }, {
+                token : "constant.language.boolean",
+                regex : "(?:true|false)\\b"
+            }, {
+                token : function(value) {
+                    if (value == "this")
+                        return "variable.language";
+                    else if (keywords.hasOwnProperty(value))
+                        return "keyword";
+                    else if (buildinConstants.hasOwnProperty(value))
+                        return "constant.language";
+                    else if (futureReserved.hasOwnProperty(value))
+                        return "invalid.illegal";
+                    else if (value == "debugger")
+                        return "invalid.deprecated";
+                    else
+                        return "identifier";
+                },
+                // TODO: Unicode escape sequences
+                // TODO: Unicode identifiers
+                regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
+            }, {
+                token : "keyword.operator",
+                regex : "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
+            }, {
+                token : "lparen",
+                regex : "[[({]"
+            }, {
+                token : "rparen",
+                regex : "[\\])}]"
+            }, {
+                token: "comment",
+                regex: "^#!.*$" 
+            }, {
+                token : "text",
+                regex : "\\s+"
+            }
         ],
         "comment" : [
-	        {
-	            token : "comment", // closing comment
-	            regex : ".*?\\*\\/",
-	            next : "start"
-	        }, {
-	            token : "comment", // comment spanning whole line
-	            regex : ".+"
-	        }
+            {
+                token : "comment", // closing comment
+                regex : ".*?\\*\\/",
+                next : "start"
+            }, {
+                token : "comment", // comment spanning whole line
+                regex : ".+"
+            }
         ],
         "qqstring" : [
             {
-	            token : "string",
-	            regex : '(?:(?:\\\\.)|(?:[^"\\\\]))*?"',
-	            next : "start"
-	        }, {
-	            token : "string",
-	            regex : '.+'
-	        }
+                token : "string",
+                regex : '(?:(?:\\\\.)|(?:[^"\\\\]))*?"',
+                next : "start"
+            }, {
+                token : "string",
+                regex : '.+'
+            }
         ],
         "qstring" : [
-	        {
-	            token : "string",
-	            regex : "(?:(?:\\\\.)|(?:[^'\\\\]))*?'",
-	            next : "start"
-	        }, {
-	            token : "string",
-	            regex : '.+'
-	        }
+            {
+                token : "string",
+                regex : "(?:(?:\\\\.)|(?:[^'\\\\]))*?'",
+                next : "start"
+            }, {
+                token : "string",
+                regex : '.+'
+            }
         ]
     };
 
@@ -10706,7 +11544,7 @@ exports.JavaScriptHighlightRules = JavaScriptHighlightRules;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/doc_comment_highlight_rules', ['require', 'exports', 'module' , 'pilot/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+define('ace/mode/doc_comment_highlight_rules', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
@@ -10763,7 +11601,7 @@ exports.DocCommentHighlightRules = DocCommentHighlightRules;
  * @author Fabian Jakobs <fabian AT ajax DOT org>
  */
 
-define('ace/worker/worker_client', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/event_emitter'], function(require, exports, module) {
+define('ace/worker/worker_client', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var EventEmitter = require("pilot/event_emitter").EventEmitter;
@@ -10799,7 +11637,7 @@ var WorkerClient = function(topLevelNamespaces, packagedJs, module, classname) {
 
     var _self = this;
     this.$worker.onerror = function(e) {
-        console.log(e);
+        window.console && console.log && console.log(e);
         throw e;
     };
     this.$worker.onmessage = function(e) {
@@ -10829,6 +11667,9 @@ var WorkerClient = function(topLevelNamespaces, packagedJs, module, classname) {
     oop.implement(this, EventEmitter);
 
     this.$guessBasePath = function() {
+        if (require.aceBaseUrl)
+            return require.aceBaseUrl;
+        
         var scripts = document.getElementsByTagName("script");
         for (var i=0; i<scripts.length; i++) {
             var src = scripts[i].src || scripts[i].getAttribute("src");
@@ -10872,7 +11713,7 @@ exports.WorkerClient = WorkerClient;
 
 });
 
-define('ace/mode/javascript_worker', ['require', 'exports', 'module' , 'pilot/oop', 'ace/worker/mirror', 'ace/worker/jshint', 'ace/narcissus/jsparse'], function(require, exports, module) {
+define('ace/mode/javascript_worker', function(require, exports, module) {
     
 var oop = require("pilot/oop");
 var Mirror = require("ace/worker/mirror").Mirror;
@@ -10920,7 +11761,7 @@ oop.inherits(JavaScriptWorker, Mirror);
 }).call(JavaScriptWorker.prototype);
 
 });
-define('ace/worker/mirror', ['require', 'exports', 'module' , 'ace/document', 'pilot/lang'], function(require, exports, module) {
+define('ace/worker/mirror', function(require, exports, module) {
     
 var Document = require("ace/document").Document;
 var lang = require("pilot/lang");
@@ -10961,7 +11802,8 @@ var Mirror = exports.Mirror = function(sender) {
     
 }).call(Mirror.prototype);
 
-});/*
+});define('ace/worker/jshint', function(require, exports, module) {
+/*
  * JSHint, by JSHint Community.
  *
  * Licensed under the same slightly modified MIT license that JSLint is.
@@ -10994,8 +11836,6 @@ var Mirror = exports.Mirror = function(sender) {
  * JSHint was forked from 2010-12-16 edition of JSLint.
  *
  */
-
-define('ace/worker/jshint', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 /*
  JSHINT is a global function. It takes two parameters.
@@ -11123,7 +11963,7 @@ define('ace/worker/jshint', ['require', 'exports', 'module' ], function(require,
  "(begin)", "(breakage)", "(context)", "(error)", "(global)",
  "(identifier)", "(last)", "(line)", "(loopage)", "(name)", "(onevar)",
  "(params)", "(scope)", "(statement)", "(verb)", "*", "+", "++", "-",
- "--", "\/", "<", "<=", "==", "===", ">", ">=", ADSAFE, __filename, __dirname,
+ "--", "\/", "<", "<=", "==", "===", ">", ">=", $, ADSAFE, __filename, __dirname,
  ActiveXObject, Array, Boolean, Buffer, COM, CScript, Canvas, CustomAnimation,
  Date, Debug, E, Enumerator, Error, EvalError, FadeAnimation, Flash,
  FormField, Frame, Function, HotKey, Image, JSON, LN10, LN2, LOG10E,
@@ -11135,8 +11975,8 @@ define('ace/worker/jshint', ['require', 'exports', 'module' ], function(require,
  WScript, Web, Window, XMLDOM, XMLHttpRequest, "\\", a, abbr, acronym,
  activeborder, activecaption, addEventListener, address, adsafe, alert,
  aliceblue, all, animator, antiquewhite, appleScript, applet, apply,
- approved, appworkspace, aqua, aquamarine, area, arguments, arity,
- article, aside, audio, autocomplete, azure, b, background,
+ approved, appworkspace, applicationCache, aqua, aquamarine, area, arguments,
+ arity, article, aside, audio, autocomplete, azure, b, background,
  "background-attachment", "background-color", "background-image",
  "background-position", "background-repeat", base, bdo, beep, beige, big,
  bisque, bitwise, black, blanchedalmond, block, blockquote, blue,
@@ -11155,22 +11995,22 @@ define('ace/worker/jshint', ['require', 'exports', 'module' ], function(require,
  closeWidget, closed, closure, cm, code, col, colgroup, color, command,
  comment, condition, confirm, console, constructor, content,
  convertPathToHFS, convertPathToPlatform, coral, cornflowerblue,
- cornsilk, "counter-increment", "counter-reset", create, crimson, css, curly,
- cursor, cyan, d, darkblue, darkcyan, darkgoldenrod, darkgray, darkgreen,
- darkkhaki, darkmagenta, darkolivegreen, darkorange, darkorchid, darkred,
- darksalmon, darkseagreen, darkslateblue, darkslategray, darkturquoise,
+ cornsilk, couch, "counter-increment", "counter-reset", create, crimson,
+ css, curly, cursor, cyan, d, darkblue, darkcyan, darkgoldenrod, darkgray,
+ darkgreen, darkkhaki, darkmagenta, darkolivegreen, darkorange, darkorchid,
+ darkred, darksalmon, darkseagreen, darkslateblue, darkslategray, darkturquoise,
  darkviolet, data, datalist, dd, debug, decodeURI, decodeURIComponent,
  deeppink, deepskyblue, defaultStatus, defineClass, del, deserialize,
  details, devel, dfn, dialog, dimgray, dir, direction, display, div, dl,
- document, dodgerblue, dt, edition, else, em, embed, embossed, empty,
+ document, dodgerblue, dt, edition, else, em, embed, embossed, emit, empty,
  "empty-cells", encodeURI, encodeURIComponent, entityify, eqeqeq, errors,
  es5, escape, eval, event, evidence, evil, ex, exception, exec, exps, exports,
- fieldset, figure, filesystem, firebrick, first, float, floor,
+ fieldset, figure, filesystem, FileReader, firebrick, first, float, floor,
  floralwhite, focus, focusWidget, font, "font-family", "font-size",
  "font-size-adjust", "font-stretch", "font-style", "font-variant",
  "font-weight", footer, forestgreen, forin, form, fragment, frame,
  frames, frameset, from, fromCharCode, fuchsia, fud, funct, function,
- functions, g, gainsboro, gc, getComputedStyle, ghostwhite, GLOBAL, global,
+ functions, g, gainsboro, gc, getComputedStyle, getRow, ghostwhite, GLOBAL, global,
  globals, gold, goldenrod, gray, graytext, green, greenyellow, h1, h2,
  h3, h4, h5, h6, handheld, hasOwnProperty, head, header, height, help,
  hgroup, highlight, highlighttext, history, honeydew, hotpink, hr,
@@ -11178,16 +12018,16 @@ define('ace/worker/jshint', ['require', 'exports', 'module' ], function(require,
  implieds, in, inactiveborder, inactivecaption, inactivecaptiontext,
  include, indent, indexOf, indianred, indigo, infobackground, infotext,
  init, input, ins, isAlpha, isApplicationRunning, isArray, isDigit,
- isFinite, isNaN, ivory, join, jshint, JSHINT, json, kbd, keygen, keys, khaki,
- konfabulatorVersion, label, labelled, lang, last, lavender,
- lavenderblush, lawngreen, laxbreak, lbp, led, left, legend,
+ isFinite, isNaN, ivory, join, jshint, JSHINT, json, jquery, jQuery, kbd,
+ keygen, keys, khaki, konfabulatorVersion, label, labelled, lang, last,
+ lavender, lavenderblush, lawngreen, laxbreak, lbp, led, left, legend,
  lemonchiffon, length, "letter-spacing", li, lib, lightblue, lightcoral,
  lightcyan, lightgoldenrodyellow, lightgreen, lightpink, lightsalmon,
  lightseagreen, lightskyblue, lightslategray, lightsteelblue,
  lightyellow, lime, limegreen, line, "line-height", linen, link,
  "list-style", "list-style-image", "list-style-position",
- "list-style-type", load, loadClass, location, log, m, magenta, map,
- margin, "margin-bottom", "margin-left", "margin-right", "margin-top",
+ "list-style-type", load, loadClass, localStorage, location, log, m, magenta,
+ map, margin, "margin-bottom", "margin-left", "margin-right", "margin-top",
  mark, "marker-offset", maroon, match, "max-height", "max-width", maxerr,
  maxlen, md5, mediumaquamarine, mediumblue, mediumorchid, mediumpurple,
  mediumseagreen, mediumslateblue, mediumspringgreen, mediumturquoise,
@@ -11196,8 +12036,8 @@ define('ace/worker/jshint', ['require', 'exports', 'module' ], function(require,
  moccasin, module, moveBy, moveTo, name, nav, navajowhite, navigator, navy, new,
  newcap, noarg, node, noempty, noframes, nomen, nonew, noscript, nud, object, ol,
  oldlace, olive, olivedrab, on, onbeforeunload, onblur, onerror, onevar,
- onfocus, onload, onresize, onunload, opacity, open, openURL, opener, opera,
- optgroup, option, orange, orangered, orchid, outer, outline, "outline-color",
+ onfocus, onload, onresize, onunload, opacity, open, openDatabase, openURL, opener,
+ opera, optgroup, option, orange, orangered, orchid, outer, outline, "outline-color",
  "outline-style", "outline-width", output, overflow, "overflow-x",
  "overflow-y", p, padding, "padding-bottom", "padding-left",
  "padding-right", "padding-top", "page-break-after", "page-break-before",
@@ -11208,15 +12048,15 @@ define('ace/worker/jshint', ['require', 'exports', 'module' ], function(require,
  prompt, prototype, pt, purple, push, px, q, quit, quotes, random, range,
  raw, reach, readFile, readUrl, reason, red, regexp, reloadWidget,
  removeEventListener, replace, report, require, reserved, resizeBy, resizeTo,
- resolvePath, resumeUpdates, rhino, right, rosybrown, royalblue, rp, rt,
- ruby, runCommand, runCommandInBg, saddlebrown, safe, salmon, samp,
+ resolvePath, resumeUpdates, respond, rhino, right, rosybrown, royalblue,
+ rp, rt, ruby, runCommand, runCommandInBg, saddlebrown, safe, salmon, samp,
  sandybrown, saveAs, savePreferences, screen, script, scroll, scrollBy,
- scrollTo, scrollbar, seagreen, seal, search, seashell, section, select,
+ scrollTo, scrollbar, seagreen, seal, search, seashell, section, send, select,
  serialize, setInterval, setTimeout, shift, showWidgetPreferences,
  sienna, silver, skyblue, slateblue, slategray, sleep, slice, small,
  snow, sort, source, span, spawn, speak, speech, split, springgreen, src,
- stack, status, steelblue, strict, strong, style, styleproperty, sub,
- substr, sup, supplant, suppressUpdates, sync, system, table,
+ stack, status, start, steelblue, strict, strong, style, styleproperty, sub,
+ substr, sum, sup, supplant, suppressUpdates, sync, system, table,
  "table-layout", tan, tbody, td, teal, tellWidget, test, "text-align",
  "text-decoration", "text-indent", "text-shadow", "text-transform",
  textarea, tfoot, th, thead, thistle, threeddarkshadow, threedface,
@@ -11224,10 +12064,10 @@ define('ace/worker/jshint', ['require', 'exports', 'module' ], function(require,
  toLowerCase, toString, toUpperCase, toint32, token, tomato, top, tr, tt,
  tty, turquoise, tv, type, u, ul, undef, unescape, "unicode-bidi",
  unused, unwatch, updateNow, urls, value, valueOf, var, version,
- "vertical-align", video, violet, visibility, watch, wheat, white,
+ "vertical-align", video, violet, visibility, watch, WebSocket, wheat, white,
  "white-space", whitesmoke, widget, width, window, windowframe, windows,
- windowtext, "word-spacing", "word-wrap", yahooCheckLogin, yahooLogin,
- yahooLogout, yellow, yellowgreen, "z-index"
+ windowtext, Worker, "word-spacing", "word-wrap", yahooCheckLogin,
+ yahooLogin, yahooLogout, yellow, yellowgreen, "z-index"
 */
 
 /*global exports: false */
@@ -11284,9 +12124,10 @@ var JSHINT = (function () {
         boolOptions = {
             adsafe     : true, // if ADsafe should be enforced
             bitwise    : true, // if bitwise operators should not be allowed
-            boss       : true, // if assignments inside if/for/while/do should be allowed
+            boss       : true, // if advanced usage of assignments and == should be allowed
             browser    : true, // if the standard browser globals should be predefined
             cap        : true, // if upper case HTML should be allowed
+            couch      : true, // if CouchDB globals should be predefined
             css        : true, // if CSS workarounds should be tolerated
             curly      : true, // if curly braces around blocks should be required (even in if/for/while)
             debug      : true, // if debugger statements should be allowed
@@ -11297,6 +12138,7 @@ var JSHINT = (function () {
             forin      : true, // if for in statements must filter
             fragment   : true, // if HTML fragments should be allowed
             immed      : true, // if immediate invocations must be wrapped in parens
+            jquery     : true, // if jQuery globals should be predefined
             laxbreak   : true, // if line breaks should not be checked
             newcap     : true, // if constructor names must be capitalized
             noarg      : true, // if arguments.caller and arguments.callee should be disallowed
@@ -11324,6 +12166,7 @@ var JSHINT = (function () {
 
         browser = {
             addEventListener: false,
+            applicationCache: false,
             blur            : false,
             clearInterval   : false,
             clearTimeout    : false,
@@ -11332,12 +12175,14 @@ var JSHINT = (function () {
             defaultStatus   : false,
             document        : false,
             event           : false,
+            FileReader      : false,
             focus           : false,
             frames          : false,
             getComputedStyle: false,
             history         : false,
             Image           : false,
             length          : false,
+            localStorage    : false,
             location        : false,
             moveBy          : false,
             moveTo          : false,
@@ -11351,6 +12196,7 @@ var JSHINT = (function () {
             onresize        : true,
             onunload        : true,
             open            : false,
+            openDatabase    : false,
             opener          : false,
             Option          : false,
             parent          : false,
@@ -11366,8 +12212,23 @@ var JSHINT = (function () {
             setTimeout      : false,
             status          : false,
             top             : false,
+            WebSocket       : false,
             window          : false,
+            Worker          : false,
             XMLHttpRequest  : false
+        },
+
+        couch = {
+            "require" : false,
+            respond   : false,
+            getRow    : false,
+            emit      : false,
+            send      : false,
+            start     : false,
+            sum       : false,
+            log       : false,
+            exports   : false,
+            module    : false
         },
 
         cssAttributeData,
@@ -11715,6 +12576,12 @@ var JSHINT = (function () {
         inblock,
         indent,
         jsonmode,
+
+        jquery = {
+            '$'    : false,
+            jQuery : false
+        },
+
         lines,
         lookahead,
         member,
@@ -12065,26 +12932,32 @@ var JSHINT = (function () {
     }
 
     function assume() {
-        if (!option.safe) {
-            if (option.rhino) {
-                combine(predefined, rhino);
-            }
-            if (option.node) {
-                combine(predefined, node);
-            }
-            if (option.devel) {
-                combine(predefined, devel);
-            }
-            if (option.browser) {
-                combine(predefined, browser);
-            }
-            if (option.windows) {
-                combine(predefined, windows);
-            }
-            if (option.widget) {
-                combine(predefined, widget);
-            }
-        }
+        if (option.safe)
+            return;
+
+        if (option.couch)
+            combine(predefined, couch);
+
+        if (option.rhino)
+            combine(predefined, rhino);
+
+        if (option.node)
+            combine(predefined, node);
+
+        if (option.devel)
+            combine(predefined, devel);
+
+        if (option.browser)
+            combine(predefined, browser);
+
+        if (option.jquery)
+            combine(predefined, jquery);
+
+        if (option.windows)
+            combine(predefined, windows);
+
+        if (option.widget)
+            combine(predefined, widget);
     }
 
 
@@ -13392,10 +14265,10 @@ loop:   for (;;) {
         return node &&
               ((node.type === '(number)' && +node.value === 0) ||
                (node.type === '(string)' && node.value === '') ||
+               (node.type === 'null' && !option.boss) ||
                 node.type === 'true' ||
                 node.type === 'false' ||
-                node.type === 'undefined' ||
-                node.type === 'null');
+                node.type === 'undefined');
     }
 
 
@@ -13501,22 +14374,30 @@ loop:   for (;;) {
     }
 
 
-    function optionalidentifier() {
+    // fnparam means that this identifier is being defined as a function
+    // argument (see identifier())
+    function optionalidentifier(fnparam) {
         if (nexttoken.identifier) {
             advance();
             if (option.safe && banned[token.value]) {
                 warning("ADsafe violation: '{a}'.", token, token.value);
             } else if (token.reserved && !option.es5) {
-                warning("Expected an identifier and instead saw '{a}' (a reserved word).",
-                        token, token.id);
+                // `undefined` as a function param is a common pattern to protect
+                // against the case when somebody does `undefined = true` and
+                // help with minification. More info: https://gist.github.com/315916
+                if (!fnparam || token.value != 'undefined') {
+                    warning("Expected an identifier and instead saw '{a}' (a reserved word).",
+                            token, token.id);
+                }
             }
             return token.value;
         }
     }
 
-
-    function identifier() {
-        var i = optionalidentifier();
+    // fnparam means that this identifier is being defined as a function
+    // argument
+    function identifier(fnparam) {
+        var i = optionalidentifier(fnparam);
         if (i) {
             return i;
         }
@@ -13709,10 +14590,10 @@ loop:   for (;;) {
     /*
      * Parses a single block. A block is a sequence of statements wrapped in
      * braces.
-     * 
-     * ordinary - true for everything but function bodies and try blocks. 
-     * stmt     - true if block can be a single statement (e.g. in if/for/while).     
-     */ 
+     *
+     * ordinary - true for everything but function bodies and try blocks.
+     * stmt     - true if block can be a single statement (e.g. in if/for/while).
+     */
     function block(ordinary, stmt) {
         var a,
             b = inblock,
@@ -15139,9 +16020,14 @@ loop:   for (;;) {
 
 // The name is not defined in the function.  If we are in the global scope,
 // then we have an undefined variable.
+//
+// Operators typeof and delete do not raise runtime errors even if the base
+// object of a reference is null so no need to display warning if we're
+// inside of typeof or delete.
 
             } else if (funct['(global)']) {
-                if (option.undef && typeof predefined[v] !== 'boolean') {
+                if (anonname != 'typeof' && anonname != 'delete' &&
+                    option.undef && typeof predefined[v] !== 'boolean') {
                     warning("'{a}' is not defined.", token, v);
                 }
                 note_implied(token);
@@ -15174,7 +16060,11 @@ loop:   for (;;) {
                         warning("'{a}' is not allowed.", token, v);
                         note_implied(token);
                     } else if (typeof s !== 'object') {
-                        if (option.undef) {
+
+// Operators typeof and delete do not raise runtime errors even if the base object of
+// a reference is null so no need to display warning if we're inside of typeof or delete.
+
+                        if (anonname != 'typeof' && anonname != 'delete' && option.undef) {
                             warning("'{a}' is not defined.", token, v);
                         } else {
                             funct[v] = true;
@@ -15735,7 +16625,7 @@ loop:   for (;;) {
             return;
         }
         for (;;) {
-            i = identifier();
+            i = identifier(true);
             p.push(i);
             addlabel(i, 'parameter');
             if (nexttoken.id === ',') {
@@ -16809,6 +17699,8 @@ loop:   for (;;) {
     };
     itself.jshint = itself;
 
+    itself.edition = '2011-02-19';
+
     return itself;
 
 }());
@@ -16868,7 +17760,7 @@ if (typeof exports == 'object' && exports)
  * Parser.
  */
 
-define('ace/narcissus/jsparse', ['require', 'exports', 'module' , 'ace/narcissus/jslex', 'ace/narcissus/jsdefs'], function(require, exports, module) {
+define('ace/narcissus/jsparse', function(require, exports, module) {
 
 var lexer = require("ace/narcissus/jslex");
 var definitions = require("ace/narcissus/jsdefs");
@@ -18297,7 +19189,7 @@ exports.FunctionDefinition = FunctionDefinition;
  * Lexical scanner.
  */
 
-define('ace/narcissus/jslex', ['require', 'exports', 'module' , 'ace/narcissus/jsdefs'], function(require, exports, module) {
+define('ace/narcissus/jslex', function(require, exports, module) {
 
 var definitions = require("ace/narcissus/jsdefs");
 
@@ -18759,7 +19651,7 @@ exports.Tokenizer = Tokenizer;
  * done by SpiderMonkey.
  */
 
-define('ace/narcissus/jsdefs', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('ace/narcissus/jsdefs', function(require, exports, module) {
 
 exports.options =  {
     version: 185,
@@ -19121,7 +20013,7 @@ exports.Stack = Stack;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/virtual_renderer', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/dom', 'pilot/event', 'pilot/useragent', 'ace/layer/gutter', 'ace/layer/marker', 'ace/layer/text', 'ace/layer/cursor', 'ace/scrollbar', 'ace/renderloop', 'pilot/event_emitter', 'text!ace/css/editor.css'], function(require, exports, module) {
+define('ace/virtual_renderer', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var dom = require("pilot/dom");
@@ -19134,7 +20026,7 @@ var CursorLayer = require("ace/layer/cursor").Cursor;
 var ScrollBar = require("ace/scrollbar").ScrollBar;
 var RenderLoop = require("ace/renderloop").RenderLoop;
 var EventEmitter = require("pilot/event_emitter").EventEmitter;
-var editorCss = require("text!ace/css/editor.css");
+var editorCss = require("text/ace/css/editor.css");
 
 // import CSS once
 dom.importCssString(editorCss);
@@ -19275,6 +20167,10 @@ var VirtualRenderer = function(container, theme) {
         this.$loop.schedule(this.CHANGE_FULL);
     };
 
+    this.updateFontSize = function() {
+        this.$textLayer.checkForSizeChanges();
+    };
+
     /**
      * Triggers resize of the editor
      */
@@ -19360,6 +20256,10 @@ var VirtualRenderer = function(container, theme) {
     this.getPrintMarginColumn = function() {
         return this.$printMarginColumn;
     };
+    
+    this.getShowGutter = function(){
+        return this.showGutter;
+    }
 
     this.setShowGutter = function(show){
         if(this.showGutter === show)
@@ -19447,6 +20347,10 @@ var VirtualRenderer = function(container, theme) {
         this.$loop.schedule(this.CHANGE_FULL);
         this.$updatePrintMargin();
     };
+
+    this.getHScrollBarAlwaysVisible = function() {
+        return this.$horizScrollAlwaysVisible;
+    }
 
     this.setHScrollBarAlwaysVisible = function(alwaysVisible) {
         if (this.$horizScrollAlwaysVisible != alwaysVisible) {
@@ -19899,7 +20803,7 @@ exports.VirtualRenderer = VirtualRenderer;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/layer/gutter', ['require', 'exports', 'module' , 'pilot/dom'], function(require, exports, module) {
+define('ace/layer/gutter', function(require, exports, module) {
 
 var dom = require("pilot/dom");
 
@@ -20022,7 +20926,7 @@ exports.Gutter = Gutter;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/layer/marker', ['require', 'exports', 'module' , 'ace/range', 'pilot/dom'], function(require, exports, module) {
+define('ace/layer/marker', function(require, exports, module) {
 
 var Range = require("ace/range").Range;
 var dom = require("pilot/dom");
@@ -20203,7 +21107,7 @@ exports.Marker = Marker;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/layer/text', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/dom', 'pilot/lang', 'pilot/event_emitter'], function(require, exports, module) {
+define('ace/layer/text', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var dom = require("pilot/dom");
@@ -20215,7 +21119,7 @@ var Text = function(parentEl) {
     this.element.className = "ace_layer ace_text-layer";
     parentEl.appendChild(this.element);
 
-    this.$characterSize = this.$measureSizes();
+    this.$characterSize = this.$measureSizes() || {width: 0, height: 0};
     this.$pollSizeChanges();
 };
 
@@ -20240,14 +21144,18 @@ var Text = function(parentEl) {
         return this.$characterSize.width || 1;
     };
 
+    this.checkForSizeChanges = function() {
+        var size = this.$measureSizes();
+        if (size && (this.$characterSize.width !== size.width || this.$characterSize.height !== size.height)) {
+            this.$characterSize = size;
+            this._dispatchEvent("changeCharaterSize", {data: size});
+        }
+    };
+
     this.$pollSizeChanges = function() {
         var self = this;
         setInterval(function() {
-            var size = self.$measureSizes();
-            if (self.$characterSize.width !== size.width || self.$characterSize.height !== size.height) {
-                self.$characterSize = size;
-                self._dispatchEvent("changeCharaterSize", {data: size});
-            }
+            self.checkForSizeChanges();
         }, 500);
     };
 
@@ -20257,32 +21165,36 @@ var Text = function(parentEl) {
         fontWeight : 1,
         fontStyle : 1,
         lineHeight : 1
-    },
+    };
 
     this.$measureSizes = function() {
         var n = 1000;
         if (!this.$measureNode) {
-	        var measureNode = this.$measureNode = dom.createElement("div");
-	        var style = measureNode.style;
+            var measureNode = this.$measureNode = dom.createElement("div");
+            var style = measureNode.style;
 
-	        style.width = style.height = "auto";
-	        style.left = style.top = (-n * 40)  + "px";
+            style.width = style.height = "auto";
+            style.left = style.top = (-n * 40)  + "px";
 
-	        style.visibility = "hidden";
-	        style.position = "absolute";
-	        style.overflow = "visible";
-	        style.whiteSpace = "nowrap";
+            style.visibility = "hidden";
+            style.position = "absolute";
+            style.overflow = "visible";
+            style.whiteSpace = "nowrap";
 
-	        // in FF 3.6 monospace fonts can have a fixed sub pixel width.
-	        // that's why we have to measure many characters
-	        // Note: characterWidth can be a float!
-	        measureNode.innerHTML = lang.stringRepeat("Xy", n);
+            // in FF 3.6 monospace fonts can have a fixed sub pixel width.
+            // that's why we have to measure many characters
+            // Note: characterWidth can be a float!
+            measureNode.innerHTML = lang.stringRepeat("Xy", n);
 
-            var container = this.element.parentNode;
-            while (!dom.hasCssClass(container, "ace_editor"))
-                container = container.parentNode;
+            if (document.body) {
+                document.body.appendChild(measureNode);
+            } else {
+                var container = this.element.parentNode;
+                while (!dom.hasCssClass(container, "ace_editor"))
+                    container = container.parentNode;
+                container.appendChild(measureNode);
+            }
 
-	        container.appendChild(measureNode);
         }
 
         var style = this.$measureNode.style;
@@ -20295,6 +21207,12 @@ var Text = function(parentEl) {
             height: this.$measureNode.offsetHeight,
             width: this.$measureNode.offsetWidth / (n * 2)
         };
+
+        // Size and width can be null if the editor is not visible or
+        // detached from the document
+        if (size.width == 0 && size.height == 0)
+            return null;
+
         return size;
     };
 
@@ -20400,7 +21318,7 @@ var Text = function(parentEl) {
 
             var html = [];
             if (tokens.length > row-firstRow)
-            	this.$renderLine(html, row, tokens[row-firstRow].tokens);
+                this.$renderLine(html, row, tokens[row-firstRow].tokens);
             // don't use setInnerHtml since we are working with an empty DIV
             lineEl.innerHTML = html.join("");
             fragment.appendChild(lineEl);
@@ -20559,7 +21477,7 @@ exports.Text = Text;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/layer/cursor', ['require', 'exports', 'module' , 'pilot/dom'], function(require, exports, module) {
+define('ace/layer/cursor', function(require, exports, module) {
 
 var dom = require("pilot/dom");
 
@@ -20697,7 +21615,7 @@ exports.Cursor = Cursor;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/scrollbar', ['require', 'exports', 'module' , 'pilot/oop', 'pilot/dom', 'pilot/event', 'pilot/event_emitter'], function(require, exports, module) {
+define('ace/scrollbar', function(require, exports, module) {
 
 var oop = require("pilot/oop");
 var dom = require("pilot/dom");
@@ -20783,7 +21701,7 @@ exports.ScrollBar = ScrollBar;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/renderloop', ['require', 'exports', 'module' , 'pilot/event'], function(require, exports, module) {
+define('ace/renderloop', function(require, exports, module) {
 
 var event = require("pilot/event");
 
@@ -20841,7 +21759,7 @@ var RenderLoop = function(onRender) {
 
 exports.RenderLoop = RenderLoop;
 });
-define("text!ace/css/editor.css", [], ".ace_editor {" +
+define("text/ace/css/editor.css", ".ace_editor {" +
   "    position: absolute;" +
   "    overflow: hidden;" +
   "" +
