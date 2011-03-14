@@ -6749,7 +6749,7 @@ var DRAG_OFFSET = 5; // pixels
 
 var MouseHandler = function(editor) {
     this.editor = editor;
-    event.addListener(editor.container, "mousedown", function(e) {
+    event.addListener(editor.container, "click", function(e) {
         editor.focus();
         return event.preventDefault(e);
     });
