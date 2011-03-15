@@ -359,6 +359,10 @@ Workspace = {
     session.setWrapLimitRange(null, null);
     this.editor.renderer.setPrintMarginColumn(80);
 
+    // Override the default editor context menu implementation.
+    this.editor.onContextMenu = this.editor.onContextMenuClose =
+      function() { };
+
     window.addEventListener("resize", this.onResize, false);
     this.onResize();
   },

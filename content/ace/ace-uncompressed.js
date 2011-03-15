@@ -6671,7 +6671,13 @@ var TextInput = function(parentNode, host) {
         return text;
     };
 
-    this.onContextMenu = function(mousePos, isEmpty){
+    this.onContextMenu = function(mousePos, isEmpty, e){
+        // Allow custom context menu implementations.
+        if (host.onContextMenu) {
+            host.onContextMenu(mousePos, isEmpty, e);
+            return;
+        }
+
         if (mousePos) {
             if(!tempStyle)
                 tempStyle = text.style.cssText;
@@ -6684,6 +6690,11 @@ var TextInput = function(parentNode, host) {
     }
 
     this.onContextMenuClose = function(){
+        if (host.onContextMenuClose) {
+            host.onContextMenuClose();
+            return;
+        }
+
         setTimeout(function () {
             if (tempStyle) {
                 text.style.cssText = tempStyle;
@@ -6749,9 +6760,14 @@ var DRAG_OFFSET = 5; // pixels
 
 var MouseHandler = function(editor) {
     this.editor = editor;
-    event.addListener(editor.container, "click", function(e) {
+    event.addListener(editor.container, "mousedown", function(e) {
         editor.focus();
-        return event.preventDefault(e);
+
+        // Do not prevent the default action if there is a custom context menu
+        // event handler.
+        if (!(event.getButton(e) == 2 && editor.onContextMenu)) {
+            return event.preventDefault(e);
+        }
     });
     event.addListener(editor.container, "selectstart", function(e) {
         return event.preventDefault(e);
@@ -6805,7 +6821,7 @@ var MouseHandler = function(editor) {
                 editor.moveCursorToPosition(pos);
             }
             if(button == 2) {
-                editor.textInput.onContextMenu({x: pageX, y: pageY}, selectionEmpty);
+                editor.textInput.onContextMenu({x: pageX, y: pageY}, selectionEmpty, e);
                 event.capture(editor.container, function(){}, editor.textInput.onContextMenuClose);
             }
             return;
