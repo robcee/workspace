@@ -79,7 +79,6 @@ copy({
                 "ace/mode/text",
                 "ace/mode/matching_brace_outdent",
                 "ace/mode/javascript",
-                "ace/mode/javascript_worker",
                 "ace/virtual_renderer"
             ]
         })

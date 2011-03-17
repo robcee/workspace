@@ -354,6 +354,7 @@ Workspace = {
 
     let session = this.editor.getSession();
 
+    session.setUseWorker(false);
     session.setMode(new JavaScriptMode());
     session.setUseWrapMode(true);
     session.setWrapLimitRange(null, null);

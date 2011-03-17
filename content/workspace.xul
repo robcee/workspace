@@ -276,8 +276,7 @@
 </html:style>
 
 <box id="workspace-source-container" flex="1">
-<html:pre id="workspace-source-input">
-// Enter some JavaScript, select it, right click and choose your weapon.
+<html:pre id="workspace-source-input">// Enter some JavaScript, select it, right click and choose your weapon.
 </html:pre>
 </box>
 
