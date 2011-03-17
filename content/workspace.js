@@ -360,8 +360,8 @@ Workspace = {
     this.editor.renderer.setPrintMarginColumn(80);
 
     // Override the default editor context menu implementation.
-    this.editor.onContextMenu = this.editor.onContextMenuClose =
-      function() { };
+    this.editor.onContextMenu = this.onContextMenu.bind(this);
+    this.editor.onContextMenuClose = function() { };
 
     window.addEventListener("resize", this.onResize, false);
     this.onResize();
@@ -374,6 +374,19 @@ Workspace = {
     this.textbox.style.width = this.textboxContainer.clientWidth + "px";
     this.textbox.style.height = this.textboxContainer.clientHeight + "px";
     this.editor.resize();
+  },
+
+  onContextMenu: function WS_onContextMenu(aMousePos, aSelectionIsEmpty,
+                                           aEvent) {
+    aEvent.preventDefault();
+
+    let menu = document.getElementById("workspace-text-popup");
+    if (menu.state != "closed") {
+      return;
+    }
+
+    menu.openPopup(this.editor.renderer.scroller, "overlap",
+                   aEvent.layerX, aEvent.layerY, true, false, aEvent);
   },
 
   init: function WS_init() {
