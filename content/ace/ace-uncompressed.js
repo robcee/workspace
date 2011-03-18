@@ -11371,6 +11371,7 @@ exports.Mode = Mode;
  *
  * Contributor(s):
  *      Fabian Jakobs <fabian AT ajax DOT org>
+ *      Mihai Sucan <mihai DOT sucan AT gmail DOT com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -11399,7 +11400,8 @@ var JavaScriptHighlightRules = function() {
 
     var keywords = lang.arrayToMap(
         ("break|case|catch|continue|default|delete|do|else|finally|for|function|" +
-        "if|in|instanceof|new|return|switch|throw|try|typeof|var|while|with").split("|")
+        "if|in|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|" +
+        "const|yield|import|get|set").split("|")
     );
 
     var buildinConstants = lang.arrayToMap(
@@ -11407,8 +11409,8 @@ var JavaScriptHighlightRules = function() {
     );
 
     var futureReserved = lang.arrayToMap(
-        ("class|enum|extends|super|const|export|import|implements|let|private|" +
-        "public|yield|interface|package|protected|static").split("|")
+        ("class|enum|extends|super|export|implements|private|" +
+        "public|interface|package|protected|static").split("|")
     );
 
     // regexp must not have capturing parentheses. Use (?:) instead.
